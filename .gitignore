@@ -1,0 +1,17 @@
+# Ignore Node.js heavy files
+node_modules/
+npm-debug.log
+
+# Ignore Environment Secrets (VERY IMPORTANT)
+.env
+
+# Ignore Mac System files
+.DS_Store
+
+# Ignore Flutter build files (Heavy junk)
+mobile-app/build/
+mobile-app/.dart_tool/
+mobile-app/.flutter-plugins
+mobile-app/.flutter-plugins-dependencies
+mobile-app/.pub-cache/
+mobile-app/.pub/
