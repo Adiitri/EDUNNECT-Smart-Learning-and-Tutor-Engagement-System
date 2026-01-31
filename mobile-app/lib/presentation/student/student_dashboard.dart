@@ -3,6 +3,8 @@ import 'find_tutor_screen.dart';
 import 'ai_chat_screen.dart';
 import 'my_bookings_screen.dart';
 import 'profile_screen.dart';
+// Integrated the new screen here
+import 'recommendation_screen.dart'; 
 
 class StudentDashboard extends StatelessWidget {
   const StudentDashboard({super.key});
@@ -27,7 +29,7 @@ class StudentDashboard extends StatelessWidget {
           ),
         ],
       ),
-      // FIX: SingleChildScrollView allows the column to scroll if content is too tall
+      // SingleChildScrollView allows the column to scroll if content is too tall
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -116,7 +118,7 @@ class StudentDashboard extends StatelessWidget {
 
               const SizedBox(height: 16),
 
-              // Feature 5: Recommended Courses (Placeholder)
+              // Feature 5: Recommended Courses (NOW INTEGRATED)
               _buildDashboardCard(
                 context,
                 title: "Recommended Courses",
@@ -124,7 +126,13 @@ class StudentDashboard extends StatelessWidget {
                 icon: Icons.book,
                 color: Colors.green,
                 onTap: () {
-                  // Add navigation here later
+                  // This triggers the move to your AI Recommendation Screen
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const RecommendationScreen(),
+                    ),
+                  );
                 },
               ),
 

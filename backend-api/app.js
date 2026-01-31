@@ -26,10 +26,14 @@ connectDB();
 const authRoutes = require('./src/routes/authRoutes');
 const tutorRoutes = require('./src/routes/tutorRoutes');
 
+const recommendationRoutes = require('./src/routes/recommendationRoutes'); // ADD THIS
+
 // USE ROUTES  <-- ADD THIS
 app.use('/api/auth', authRoutes);
 app.use('/api/tutors', require('./src/routes/tutors'));
 app.use('/api/tutors', tutorRoutes);
+
+app.use('/api/recommendations', recommendationRoutes);
 
 // Basic Test Route
 app.get('/', (req, res) => {
