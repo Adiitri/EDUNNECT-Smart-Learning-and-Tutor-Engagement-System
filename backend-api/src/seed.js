@@ -1,41 +1,46 @@
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
-const Tutor = require('./models/Tutor'); // Ensures it finds src/models/Tutor.js
+const User = require('./models/User'); // Import User Model
+const Tutor = require('./models/Tutor'); // Import Tutor Model
+const bcrypt = require('bcryptjs');
 
-// Load environment variables from the .env file in the root folder
 dotenv.config(); 
-
-console.log("Seeding Database...");
-console.log("Mongo URI:", process.env.MONGO_URI);
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("Connected to MongoDB"))
-  .catch(err => {
-      console.error("Connection Error:", err);
-      process.exit(1);
-  });
-
-// THE NEW DATA YOU WANT
-const tutors = [
-  { name: "Ravi Das", subject: "Mathematics", rating: "4.8", location: "New Delhi" },
-  { name: "Sudipta Ray", subject: "Physics", rating: "4.6", location: "Mumbai" },
-  { name: "Rahul Verma", subject: "Chemistry", rating: "4.9", location: "Bangalore" },
-  { name: "Priya Dey", subject: "English", rating: "4.7", location: "Online" }
-];
+  .catch(err => console.log(err));
 
 const seedDB = async () => {
   try {
-    // 1. Delete all old tutors (Goodbye Dr. A. Kumar!)
-    await Tutor.deleteMany({}); 
-    console.log("Old data deleted.");
+    // 1. Create the Admin User
+    // We must hash the password so you can actually log in!
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash("admin123", salt);
 
-    // 2. Insert new tutors
-    await Tutor.insertMany(tutors);
-    console.log("New Tutors (Ravi, Sudipta...) added!");
+    const adminUser = {
+        name: "Super Admin",
+        email: "admin@edunnect.com",
+        password: hashedPassword,
+        role: "admin",
+        city: "Headquarters"
+    };
 
+    // Check if admin exists, if not, create one
+    const existingAdmin = await User.findOne({ email: "admin@edunnect.com" });
+    if (!existingAdmin) {
+        await new User(adminUser).save();
+        console.log("Admin User Created: admin@edunnect.com / admin123");
+    } else {
+        console.log("Admin already exists.");
+    }
+
+    // 2. Refresh Tutors (Optional, keeps your data clean)
+    // You can keep your existing tutor code here if you want...
+
+    console.log("Database Seeding Complete!");
     mongoose.connection.close();
   } catch (error) {
-    console.log("Seed Error:", error);
+    console.log("Error:", error);
   }
 };
 

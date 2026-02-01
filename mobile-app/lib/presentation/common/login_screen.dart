@@ -5,6 +5,7 @@ import '../student/student_dashboard.dart';
 import '../../../services/user_session.dart';
 import 'signup_screen.dart';
 import '../tutor/tutor_dashboard.dart';
+import '../admin/admin_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -56,11 +57,16 @@ class _LoginScreenState extends State<LoginScreen> {
             context,
             MaterialPageRoute(builder: (context) => const StudentDashboard()),
           );
-        } else {
+        } else if (_selectedRole == 'tutor') {
           // GO TO TUTOR DASHBOARD
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const TutorDashboard()),
+          );
+        } else if (_selectedRole == 'admin') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const AdminDashboard()),
           );
         }
       } else {
@@ -121,7 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 16),
 
             DropdownButtonFormField<String>(
-              value: _selectedRole,
+              initialValue: _selectedRole,
               decoration: const InputDecoration(
                 labelText: "I am a...",
                 border: OutlineInputBorder(),
@@ -130,6 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
               items: const [
                 DropdownMenuItem(value: 'student', child: Text("Student")),
                 DropdownMenuItem(value: 'tutor', child: Text("Tutor")),
+                DropdownMenuItem(value: 'admin', child: Text("Admin")),
               ],
               onChanged: (value) => setState(() => _selectedRole = value!),
             ),

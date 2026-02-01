@@ -32,7 +32,7 @@ const recommendationRoutes = require('./src/routes/recommendationRoutes'); // AD
 app.use('/api/auth', authRoutes);
 app.use('/api/tutors', require('./src/routes/tutors'));
 app.use('/api/tutors', tutorRoutes);
-
+app.use('/api/admin', require('./src/routes/admin'));
 app.use('/api/recommendations', recommendationRoutes);
 
 // Basic Test Route
