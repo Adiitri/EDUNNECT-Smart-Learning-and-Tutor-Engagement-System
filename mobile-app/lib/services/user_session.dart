@@ -1,4 +1,11 @@
 class UserSession {
-  // This static variable acts like a global "backpack" to carry user data
   static Map<String, dynamic>? currentUser;
+
+  // Add this method to clear the session
+  static void clearSession() {
+    currentUser = null;
+    // Add any additional cleanup if needed (e.g., remove tokens from storage)
+  }
+
+  // ...existing code...
 }

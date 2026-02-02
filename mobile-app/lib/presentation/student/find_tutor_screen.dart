@@ -1,7 +1,6 @@
 import 'tutor_details_screen.dart';
 import 'package:flutter/material.dart';
 import '../../../services/tutor_service.dart';
-import '../../../services/user_session.dart';
 
 class FindTutorScreen extends StatefulWidget {
   const FindTutorScreen({super.key});

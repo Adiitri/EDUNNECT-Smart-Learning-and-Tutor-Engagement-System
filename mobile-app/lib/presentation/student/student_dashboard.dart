@@ -1,199 +1,272 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../services/user_session.dart';
 import 'find_tutor_screen.dart';
-import 'ai_chat_screen.dart';
 import 'my_bookings_screen.dart';
+import 'ai_chat_screen.dart';
+import 'recommendation_screen.dart';
 import 'profile_screen.dart';
-// Integrated the new screen here
-import 'recommendation_screen.dart'; 
+import '../common/splash_screen.dart';
 
 class StudentDashboard extends StatelessWidget {
   const StudentDashboard({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // 1. Get User Name safely
+    final user = UserSession.currentUser;
+    final String name = user != null ? user['name'] : "Student";
+
     return Scaffold(
-      backgroundColor: Colors.grey[100], // Light grey background
-      appBar: AppBar(
-        title: const Text("Student Dashboard"),
-        backgroundColor: Colors.blueAccent,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              // Quick Logout: Clears stack and goes back to initial route (Login)
-              Navigator.of(
-                context,
-              ).pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
-            },
+      backgroundColor: Colors.grey[50],
+      body: Column(
+        children: [
+          // ---------------------------
+          // 1. CUSTOM GRADIENT HEADER
+          // ---------------------------
+          Container(
+            padding: const EdgeInsets.only(
+              top: 60,
+              left: 20,
+              right: 20,
+              bottom: 30,
+            ),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF4A00E0), Color(0xFF8E2DE2)],
+                begin: Alignment.bottomLeft,
+                end: Alignment.topRight,
+              ),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 10,
+                  offset: Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Hello, $name! 👋",
+                      style: GoogleFonts.poppins(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      "Let's learn something new!",
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
+                // LOGOUT BUTTON
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.logout, color: Colors.white),
+                    onPressed: () {
+                      UserSession.clearSession();
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SplashScreen()),
+                        (route) => false,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ---------------------------
+          // 2. DASHBOARD GRID CARDS
+          // ---------------------------
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                // ✅ 1.4 is tall enough to hold content safely
+                childAspectRatio: 1.4,
+                children: [
+                  // CARD 1: FIND TUTORS
+                  _buildGradientCard(
+                    context,
+                    "Find Tutors",
+                    Icons.search_rounded,
+                    [const Color(0xFF00C6FF), const Color(0xFF0072FF)],
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const FindTutorScreen(),
+                      ),
+                    ),
+                  ),
+
+                  // CARD 2: AI TUTOR
+                  _buildGradientCard(
+                    context,
+                    "AI Tutor",
+                    Icons.auto_awesome,
+                    [const Color(0xFFBC4E9C), const Color(0xFFF80759)],
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AiChatScreen()),
+                    ),
+                  ),
+
+                  // CARD 3: MY BOOKINGS
+                  _buildGradientCard(
+                    context,
+                    "My Bookings",
+                    Icons.calendar_month_rounded,
+                    [const Color(0xFFF2994A), const Color(0xFFF2C94C)],
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const MyBookingsScreen(),
+                      ),
+                    ),
+                  ),
+
+                  // CARD 4: RECOMMENDATIONS
+                  _buildGradientCard(
+                    context,
+                    "Courses",
+                    Icons.recommend_rounded,
+                    [const Color(0xFF6a11cb), const Color(0xFF2575fc)],
+                    () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const RecommendationScreen(),
+                        ),
+                      );
+                    },
+                  ),
+
+                  // CARD 5: PROFILE
+                  _buildGradientCard(
+                    context,
+                    "Profile",
+                    Icons.person_rounded,
+                    [const Color(0xFF11998e), const Color(0xFF38ef7d)],
+                    () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ProfileScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
-      ),
-      // SingleChildScrollView allows the column to scroll if content is too tall
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "What do you want to learn?",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
-
-              // Feature 1: Find Tutors
-              _buildDashboardCard(
-                context,
-                title: "Find Nearby Tutors",
-                subtitle: "Search by location & subject",
-                icon: Icons.map,
-                color: Colors.orange,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const FindTutorScreen(),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 16),
-
-              // Feature 2: My Bookings
-              _buildDashboardCard(
-                context,
-                title: "My Bookings",
-                subtitle: "Check status & schedules",
-                icon: Icons.calendar_today,
-                color: Colors.blueAccent,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const MyBookingsScreen(),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 16),
-
-              // Feature 3: My Profile
-              _buildDashboardCard(
-                context,
-                title: "My Profile",
-                subtitle: "Edit details & settings",
-                icon: Icons.person,
-                color: Colors.purple,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ProfileScreen(),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 16),
-
-              // Feature 4: AI Tutor
-              _buildDashboardCard(
-                context,
-                title: "Ask AI Tutor",
-                subtitle: "Instant doubts resolution",
-                icon: Icons.smart_toy,
-                color: Colors.purpleAccent,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AiChatScreen(),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 16),
-
-              // Feature 5: Recommended Courses (NOW INTEGRATED)
-              _buildDashboardCard(
-                context,
-                title: "Recommended Courses",
-                subtitle: "Based on your interests",
-                icon: Icons.book,
-                color: Colors.green,
-                onTap: () {
-                  // This triggers the move to your AI Recommendation Screen
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const RecommendationScreen(),
-                    ),
-                  );
-                },
-              ),
-
-              // Extra space at bottom for scrolling
-              const SizedBox(height: 40),
-            ],
-          ),
-        ),
       ),
     );
   }
 
-  // Helper function to create the cards
-  Widget _buildDashboardCard(
-    BuildContext context, {
-    required String title,
-    String subtitle = "",
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
+  // ✅ FIXED GRADIENT CARD (SMALLER ICONS/TEXT)
+  Widget _buildGradientCard(
+    BuildContext context,
+    String title,
+    IconData icon,
+    List<Color> gradientColors,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: gradientColors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: gradientColors[0].withValues(alpha: 0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            // Decorative Circle
+            Positioned(
+              right: -20,
+              top: -20,
+              child: Container(
+                width: 90,
+                height: 90,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, size: 32, color: color),
               ),
-              const SizedBox(width: 16),
-              Expanded(
+            ),
+
+            // ✅ CENTERED CONTENT
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                    // ICON (Reduced from 36 to 30)
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(icon, size: 30, color: Colors.white),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // TEXT (Reduced from 18 to 15)
+                    Flexible(
+                      child: Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(
+                          fontSize: 15, // ✅ Much safer size
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
-                    if (subtitle.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(subtitle, style: TextStyle(color: Colors.grey[600])),
-                    ],
                   ],
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

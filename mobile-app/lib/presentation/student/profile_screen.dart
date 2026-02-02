@@ -1,105 +1,141 @@
 import 'package:flutter/material.dart';
-import '../common/login_screen.dart'; // Import Login Screen so we can go back to it
-import '../../../services/user_session.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../services/user_session.dart';
+import '../common/splash_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // 1. Get user from session (or use placeholders if empty)
-    final user =
-        UserSession.currentUser ?? {'name': 'Guest', 'email': 'No Email'};
+    final user = UserSession.currentUser;
+    final String name = user != null ? user['name'] : "Student";
+    final String email = user != null ? user['email'] : "student@example.com";
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("My Profile"),
-        backgroundColor: Colors.purple,
+        title: Text(
+          "My Profile",
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: const Color(0xFF8E2DE2),
         foregroundColor: Colors.white,
+        elevation: 0,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            // Profile Picture
-            Center(
-              child: CircleAvatar(
+      // ✅ FIX: This makes the page scrollable so it never overflows
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+
+              // 1. AVATAR
+              CircleAvatar(
                 radius: 60,
-                backgroundColor: Colors.purpleAccent,
+                backgroundColor: const Color(0xFFE100FF),
                 child: Text(
-                  user['name'][0].toUpperCase(), // First letter of Name
-                  style: const TextStyle(fontSize: 40, color: Colors.white),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Name (REAL DATA)
-            Text(
-              user['name'],
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            // Email (REAL DATA)
-            Text(
-              user['email'],
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-
-            // ... (Keep the rest of your code the same: Settings, Logout, etc.)
-            const SizedBox(height: 40),
-
-            // Options List
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text("Settings"),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {},
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.help),
-              title: const Text("Help & Support"),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {},
-            ),
-            const Divider(),
-
-            const Spacer(),
-
-            // Logout Button
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.shade100,
-                  elevation: 0,
-                ),
-                onPressed: () {
-                  // Logout Logic:
-                  // 1. Clear any saved data (in a real app)
-                  // 2. Navigate back to Login Screen and remove all previous screens
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const LoginScreen(),
-                    ),
-                    (route) => false, // This removes the "Back" arrow
-                  );
-                },
-                child: const Text(
-                  "Log Out",
-                  style: TextStyle(
-                    color: Colors.red,
-                    fontSize: 18,
+                  name.isNotEmpty ? name[0].toUpperCase() : "S",
+                  style: GoogleFonts.poppins(
+                    fontSize: 50,
+                    color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-          ],
+              const SizedBox(height: 20),
+
+              // 2. NAME & EMAIL
+              Text(
+                name,
+                style: GoogleFonts.poppins(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                email,
+                style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey),
+              ),
+
+              const SizedBox(height: 40),
+
+              // 3. MENU OPTIONS
+              _buildProfileOption(Icons.settings, "Settings", () {}),
+              _buildProfileOption(Icons.help_outline, "Help & Support", () {}),
+              _buildProfileOption(
+                Icons.privacy_tip_outlined,
+                "Privacy Policy",
+                () {},
+              ),
+
+              const SizedBox(height: 40),
+
+              // 4. LOGOUT BUTTON
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  onPressed: () {
+                    // Clear session and go to Splash Screen
+                    UserSession.clearSession();
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SplashScreen()),
+                      (route) => false,
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    elevation: 5,
+                  ),
+                  child: Text(
+                    "Log Out",
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+
+              // Extra space at bottom for scrolling safety
+              const SizedBox(height: 30),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  // Helper widget for menu items
+  Widget _buildProfileOption(IconData icon, String title, VoidCallback onTap) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 15),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: Colors.black87),
+        ),
+        title: Text(
+          title,
+          style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w500),
+        ),
+        trailing: const Icon(
+          Icons.arrow_forward_ios,
+          size: 16,
+          color: Colors.grey,
+        ),
+        onTap: onTap,
       ),
     );
   }
