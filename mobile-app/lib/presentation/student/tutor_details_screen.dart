@@ -1,16 +1,97 @@
-import '../../../services/tutor_service.dart';
+import 'dart:convert'; // For jsonEncode
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import '../../../services/user_session.dart'; // <--- CRITICAL IMPORT
 
-class TutorDetailsScreen extends StatelessWidget {
+class TutorDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> tutor;
 
   const TutorDetailsScreen({super.key, required this.tutor});
 
   @override
+  State<TutorDetailsScreen> createState() => _TutorDetailsScreenState();
+}
+
+class _TutorDetailsScreenState extends State<TutorDetailsScreen> {
+  bool _isBooking = false; // To show loading spinner
+
+  Future<void> _bookSession() async {
+    setState(() => _isBooking = true);
+
+    // 1. GET THE REAL LOGGED-IN USER
+    final user = UserSession.currentUser;
+
+    // Safety Check: Are they logged in?
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please Log In first!"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() => _isBooking = false);
+      return;
+    }
+
+    final String studentName =
+        user['name']; // <--- THIS IS THE FIX (e.g. "Arun")
+
+    // Use _id (MongoDB default) or id
+    final String tutorId = widget.tutor['_id'] ?? widget.tutor['id'].toString();
+
+    print("📢 Booking: $studentName booking ${widget.tutor['name']}");
+
+    // 2. SEND REQUEST TO BACKEND
+    final url = Uri.parse("http://localhost:5000/api/tutors/book");
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "tutorId": tutorId,
+          "tutorName": widget.tutor['name'],
+          "studentName": studentName, // <--- SENDING REAL NAME NOW
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Booking Confirmed! Check 'My Bookings'."),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+          // Optional: Go back to list after success
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) Navigator.pop(context);
+          });
+        }
+      } else {
+        throw Exception("Server rejected booking");
+      }
+    } catch (e) {
+      print("Booking Error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Booking Failed. Is Server Running?"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isBooking = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(tutor['name']),
+        title: Text(widget.tutor['name']),
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
       ),
@@ -25,7 +106,7 @@ class TutorDetailsScreen extends StatelessWidget {
                 radius: 50,
                 backgroundColor: Colors.orange.shade100,
                 child: Text(
-                  tutor['name'][0],
+                  widget.tutor['name'][0],
                   style: const TextStyle(fontSize: 40, color: Colors.orange),
                 ),
               ),
@@ -34,11 +115,11 @@ class TutorDetailsScreen extends StatelessWidget {
 
             // Name & Subject
             Text(
-              tutor['name'],
+              widget.tutor['name'],
               style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
             ),
             Text(
-              tutor['subject'],
+              widget.tutor['subject'],
               style: const TextStyle(fontSize: 20, color: Colors.grey),
             ),
 
@@ -49,12 +130,15 @@ class TutorDetailsScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.star, color: Colors.amber, size: 28),
                 const SizedBox(width: 8),
-                Text(tutor['rating'], style: const TextStyle(fontSize: 18)),
+                Text(
+                  widget.tutor['rating'],
+                  style: const TextStyle(fontSize: 18),
+                ),
                 const SizedBox(width: 24),
                 const Icon(Icons.location_on, color: Colors.blue, size: 28),
                 const SizedBox(width: 8),
                 Text(
-                  "Nearby", // We can use tutor['location'] here if it fits
+                  widget.tutor['location'] ?? "Online",
                   style: const TextStyle(fontSize: 18),
                 ),
               ],
@@ -86,43 +170,15 @@ class TutorDetailsScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                // Inside ElevatedButton...
-                onPressed: () async {
-                  // 1. Show Loading Indicator (optional, but good UX)
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Processing booking...")),
-                  );
-
-                  // 2. Call the Server
-                  bool success = await TutorService.bookTutor(
-                    tutor['id'].toString(), // <--- Just 'tutor', no 'widget.'
-                    tutor['name'],
-                  );
-
-                  // 3. Show Result
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                    if (success) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Booking Confirmed by Server!"),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Booking Failed"),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  }
-                },
-                child: const Text(
-                  "Book Session",
-                  style: TextStyle(fontSize: 18, color: Colors.white),
-                ),
+                onPressed: _isBooking
+                    ? null
+                    : _bookSession, // Disable if loading
+                child: _isBooking
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text(
+                        "Book Session",
+                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
               ),
             ),
           ],
