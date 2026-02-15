@@ -2,8 +2,9 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-// REGISTER USER
+// REGISTER
 exports.register = async (req, res) => {
+    console.log("REGISTER CONTROLLER HIT!"); 
     try {
         const { name, email, password, role, location, expertise } = req.body;
 
@@ -11,7 +12,7 @@ exports.register = async (req, res) => {
         let user = await User.findOne({ email });
         if (user) return res.status(400).json({ msg: 'User already exists' });
 
-        // Hash Password (Security)
+        // Hash Password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -21,24 +22,26 @@ exports.register = async (req, res) => {
             email,
             password: hashedPassword,
             role,
-            location, // Expecting { type: "Point", coordinates: [long, lat] }
+            location,
             expertise
         });
 
         await user.save();
-
+        
         // Create Token
         const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
-
+        
         res.json({ token, user: { id: user._id, name: user.name, role: user.role } });
 
     } catch (err) {
+        console.error("Register Error:", err.message);
         res.status(500).json({ error: err.message });
     }
 };
 
-// LOGIN USER
+// LOGIN
 exports.login = async (req, res) => {
+    console.log("LOGIN CONTROLLER HIT!");
     try {
         const { email, password } = req.body;
 
@@ -56,6 +59,7 @@ exports.login = async (req, res) => {
         res.json({ token, user: { id: user._id, name: user.name, role: user.role } });
 
     } catch (err) {
+        console.error("Login Error:", err.message);
         res.status(500).json({ error: err.message });
     }
 };

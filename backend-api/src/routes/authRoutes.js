@@ -1,52 +1,15 @@
-const router = require('express').Router();
-const User = require('../models/User');
+const express = require('express');
+const router = express.Router();
 
-// 1. REGISTER (Sign Up)
-router.post('/register', async (req, res) => {
-    try {
-        const { name, email, password } = req.body;
+// 1. IMPORT THE BRAIN (Your Secure Controller)
+// Make sure this path points to your actual controller file
+const authController = require('../controllers/authController');
 
-        // Check if user already exists
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            return res.status(400).json({ message: "User already exists" });
-        }
+// 2. CONNECT ROUTES TO CONTROLLER FUNCTIONS
+// When someone goes to /register, let the Controller handle it!
+router.post('/register', authController.register);
 
-        // Create new user
-        const newUser = new User({ name, email, password });
-        await newUser.save();
-
-        res.json({ message: "User registered successfully!", user: newUser });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-});
-
-// 2. LOGIN (Sign In)
-router.post('/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-
-        // Find user by email
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        // Check password (simple check for now)
-        if (user.password !== password) {
-            return res.status(400).json({ message: "Invalid password" });
-        }
-
-        // Success!
-        res.json({ 
-            message: "Login Successful", 
-            user: { id: user._id, name: user.name, email: user.email } 
-        });
-
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-});
+// When someone goes to /login, let the Controller handle it!
+router.post('/login', authController.login);
 
 module.exports = router;
