@@ -31,10 +31,12 @@ class _TutorDetailsScreenState extends State<TutorDetailsScreen> {
     }
 
     final String studentName = user['name'];
+
+    // Check if _id exists (MongoDB), otherwise fallback to 'id'
     final String tutorId = widget.tutor['_id'] ?? widget.tutor['id'].toString();
 
-    // Use 10.0.2.2 for Android Emulator, localhost for iOS/Web
-    final url = Uri.parse("http://10.0.2.2:5000/api/tutors/book");
+    // FIXED: Reverted back to localhost for Web/Chrome
+    final url = Uri.parse("http://localhost:5000/api/tutors/book");
 
     try {
       final response = await http.post(
@@ -51,7 +53,7 @@ class _TutorDetailsScreenState extends State<TutorDetailsScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text("✅ Booking Confirmed! Check 'My Bookings'."),
+              content: Text("Booking Confirmed! Check 'My Bookings'."),
               backgroundColor: Colors.green,
             ),
           );
@@ -61,6 +63,7 @@ class _TutorDetailsScreenState extends State<TutorDetailsScreen> {
         throw Exception("Server rejected booking");
       }
     } catch (e) {
+      print("Booking Error: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -82,10 +85,9 @@ class _TutorDetailsScreenState extends State<TutorDetailsScreen> {
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
       ),
-      // ✅ FIX: Use a Column with Expanded to make content scrollable but keep button fixed
+      // Scrollable Layout to prevent "Bottom Overflow"
       body: Column(
         children: [
-          // 1. SCROLLABLE CONTENT AREA
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
@@ -159,21 +161,20 @@ class _TutorDetailsScreenState extends State<TutorDetailsScreen> {
                     style: TextStyle(fontSize: 16, height: 1.5),
                   ),
 
-                  // Add extra space at bottom of text so it doesn't touch the button
                   const SizedBox(height: 20),
                 ],
               ),
             ),
           ),
 
-          // 2. FIXED BOOK BUTTON AT BOTTOM
+          // BOOK BUTTON
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withValues(alpha: 0.1),
+                  color: Colors.grey.withOpacity(0.1),
                   blurRadius: 10,
                   offset: const Offset(0, -5),
                 ),
