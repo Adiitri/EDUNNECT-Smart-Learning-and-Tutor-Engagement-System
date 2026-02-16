@@ -7,81 +7,104 @@ import 'ai_chat_screen.dart';
 import 'recommendation_screen.dart';
 import 'profile_screen.dart';
 import '../common/splash_screen.dart';
+import 'real_time_chat.dart'; 
 
-class StudentDashboard extends StatelessWidget {
+class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
 
   @override
+  State<StudentDashboard> createState() => _StudentDashboardState();
+}
+
+class _StudentDashboardState extends State<StudentDashboard> {
+  int _selectedIndex = 0;
+
+  @override
   Widget build(BuildContext context) {
-    // 1. Get User Name safely
+    // Get User Name safely
     final user = UserSession.currentUser;
     final String name = user != null ? user['name'] : "Student";
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      body: Column(
-        children: [
-          // ---------------------------
-          // 1. CUSTOM GRADIENT HEADER
-          // ---------------------------
-          Container(
-            padding: const EdgeInsets.only(
-              top: 60,
-              left: 20,
-              right: 20,
-              bottom: 30,
-            ),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF4A00E0), Color(0xFF8E2DE2)],
-                begin: Alignment.bottomLeft,
-                end: Alignment.topRight,
-              ),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(30),
-                bottomRight: Radius.circular(30),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 10,
-                  offset: Offset(0, 5),
+      
+      // ---------------------------------------------------------
+      // 1. BOTTOM NAVIGATION BAR
+      // ---------------------------------------------------------
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        selectedItemColor: const Color(0xFF4A00E0),
+        unselectedItemColor: Colors.grey,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+          if (index == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const RealTimeChatScreen(tutor: {'name': 'Support Team'})),
+            );
+          } else if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            );
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.message_rounded), label: "Chat"),
+          BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: "Profile"),
+        ],
+      ),
+
+      // ---------------------------------------------------------
+      // 2. BODY (With ScrollView to prevent "Not Showing" issues)
+      // ---------------------------------------------------------
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // CUSTOM GRADIENT HEADER
+            Container(
+              padding: const EdgeInsets.only(top: 60, left: 20, right: 20, bottom: 30),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF4A00E0), Color(0xFF8E2DE2)],
+                  begin: Alignment.bottomLeft,
+                  end: Alignment.topRight,
                 ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Hello, $name! 👋",
-                      style: GoogleFonts.poppins(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      "Let's learn something new!",
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: Colors.white70,
-                      ),
-                    ),
-                  ],
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
                 ),
-                // LOGOUT BUTTON
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Hello, $name! 👋",
+                        style: GoogleFonts.poppins(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        "Let's learn something new!",
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
                   ),
-                  child: IconButton(
-                    icon: const Icon(Icons.logout, color: Colors.white),
-                    onPressed: () {
+                  _buildHeaderCircleButton(
+                    icon: Icons.logout,
+                    onTap: () {
                       UserSession.clearSession();
                       Navigator.pushAndRemoveUntil(
                         context,
@@ -90,105 +113,94 @@ class StudentDashboard extends StatelessWidget {
                       );
                     },
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
 
-          // ---------------------------
-          // 2. DASHBOARD GRID CARDS
-          // ---------------------------
-          Expanded(
-            child: Padding(
+            // DASHBOARD GRID CARDS
+            Padding(
               padding: const EdgeInsets.all(20.0),
+              // Use shrinkWrap so it works inside SingleChildScrollView
               child: GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
                 crossAxisCount: 2,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                // ✅ 1.4 is tall enough to hold content safely
                 childAspectRatio: 1.4,
                 children: [
-                  // CARD 1: FIND TUTORS
                   _buildGradientCard(
                     context,
                     "Find Tutors",
                     Icons.search_rounded,
                     [const Color(0xFF00C6FF), const Color(0xFF0072FF)],
-                    () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const FindTutorScreen(),
-                      ),
-                    ),
+                    () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FindTutorScreen())),
                   ),
-
-                  // CARD 2: AI TUTOR
                   _buildGradientCard(
                     context,
                     "AI Tutor",
                     Icons.auto_awesome,
                     [const Color(0xFFBC4E9C), const Color(0xFFF80759)],
-                    () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AiChatScreen()),
-                    ),
+                    () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AiChatScreen())),
                   ),
-
-                  // CARD 3: MY BOOKINGS
                   _buildGradientCard(
                     context,
                     "My Bookings",
                     Icons.calendar_month_rounded,
                     [const Color(0xFFF2994A), const Color(0xFFF2C94C)],
-                    () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const MyBookingsScreen(),
-                      ),
-                    ),
+                    () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyBookingsScreen())),
                   ),
-
-                  // CARD 4: RECOMMENDATIONS
                   _buildGradientCard(
                     context,
                     "Courses",
                     Icons.recommend_rounded,
                     [const Color(0xFF6a11cb), const Color(0xFF2575fc)],
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const RecommendationScreen(),
-                        ),
-                      );
-                    },
+                    () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RecommendationScreen())),
+                  ),
+                  
+                  // MESSAGES CARD
+                  _buildGradientCard(
+                    context,
+                    "Messages",
+                    Icons.chat_bubble_rounded,
+                    [const Color(0xFF6441A5), const Color(0xFF2a0845)],
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const RealTimeChatScreen(tutor: {'name': 'Support Team'})),
+                    ),
                   ),
 
-                  // CARD 5: PROFILE
                   _buildGradientCard(
                     context,
                     "Profile",
                     Icons.person_rounded,
                     [const Color(0xFF11998e), const Color(0xFF38ef7d)],
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const ProfileScreen(),
-                        ),
-                      );
-                    },
+                    () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  // ✅ FIXED GRADIENT CARD (SMALLER ICONS/TEXT)
+  // --- HELPER WIDGETS ---
+
+  Widget _buildHeaderCircleButton({required IconData icon, required VoidCallback onTap}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        shape: BoxShape.circle,
+      ),
+      child: IconButton(
+        icon: Icon(icon, color: Colors.white, size: 22),
+        onPressed: onTap,
+      ),
+    );
+  }
+
   Widget _buildGradientCard(
     BuildContext context,
     String title,
@@ -208,7 +220,7 @@ class StudentDashboard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: gradientColors[0].withValues(alpha: 0.3),
+              color: gradientColors[0].withOpacity(0.3),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -216,54 +228,27 @@ class StudentDashboard extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            // Decorative Circle
             Positioned(
-              right: -20,
-              top: -20,
-              child: Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-              ),
+              right: -15,
+              top: -15,
+              child: Icon(icon, size: 70, color: Colors.white.withOpacity(0.1)),
             ),
-
-            // ✅ CENTERED CONTENT
             Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // ICON (Reduced from 36 to 30)
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(icon, size: 30, color: Colors.white),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, size: 30, color: Colors.white),
+                  const SizedBox(height: 8),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
-                    const SizedBox(height: 10),
-
-                    // TEXT (Reduced from 18 to 15)
-                    Flexible(
-                      child: Text(
-                        title,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.poppins(
-                          fontSize: 15, // ✅ Much safer size
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
