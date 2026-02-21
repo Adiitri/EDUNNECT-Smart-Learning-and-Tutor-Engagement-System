@@ -5,6 +5,9 @@ const cors = require('cors');
 const connectDB = require('./src/config/db');
 require('dotenv').config();
 
+
+
+
 // Initialize App
 const app = express();
 const server = http.createServer(app);
@@ -28,6 +31,9 @@ const tutorRoutes = require('./src/routes/tutorRoutes');
 
 const recommendationRoutes = require('./src/routes/recommendationRoutes'); // ADD THIS
 
+
+const chatRoutes = require('./src/routes/chatRoutes'); // ADDED THIS
+
 // USE ROUTES  <-- ADD THIS
 app.use('/api/auth', authRoutes);
 app.use('/api/tutors', require('./src/routes/tutors'));
@@ -35,9 +41,37 @@ app.use('/api/tutors', tutorRoutes);
 app.use('/api/admin', require('./src/routes/admin'));
 app.use('/api/recommendations', recommendationRoutes);
 
+app.use('/api/chat', chatRoutes); // ADDED THIS
+
 // Basic Test Route
 app.get('/', (req, res) => {
     res.send('Edunnect Backend is Running ');
+});
+
+io.on('connection', (socket) => {
+    console.log('User connected');
+
+    socket.on('join_chat', (bookingId) => {
+        socket.join(bookingId);
+        console.log(`User joined room: ${bookingId}`);
+    });
+
+    socket.on('send_message', async (data) => {
+        // 1. Save message to DB via controller
+        // data should contain: { bookingId, senderId, text }
+        await chatController.saveSocketMessage(data);
+
+        // 2. Broadcast to the specific booking room
+        io.to(data.bookingId).emit('receive_message', {
+            text: data.text,
+            senderId: data.senderId,
+            timestamp: new Date()
+        });
+    });
+
+    socket.on('disconnect', () => {
+        console.log('User disconnected');
+    });
 });
 
 // Start Server

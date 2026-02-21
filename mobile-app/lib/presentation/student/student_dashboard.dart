@@ -8,6 +8,7 @@ import 'recommendation_screen.dart';
 import 'profile_screen.dart';
 import '../common/splash_screen.dart';
 import 'real_time_chat.dart'; 
+import 'tutor_chat_list.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -41,9 +42,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
           });
           if (index == 1) {
             Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const RealTimeChatScreen(tutor: {'name': 'Support Team'})),
-            );
+        context,
+        MaterialPageRoute(
+          builder: (_) => TutorChatList(studentName: name), // Use 'name' from your build variable
+        ),
+      );
           } else if (index == 2) {
             Navigator.push(
               context,
@@ -160,15 +163,23 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   
                   // MESSAGES CARD
                   _buildGradientCard(
-                    context,
-                    "Messages",
-                    Icons.chat_bubble_rounded,
-                    [const Color(0xFF6441A5), const Color(0xFF2a0845)],
-                    () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const RealTimeChatScreen(tutor: {'name': 'Support Team'})),
-                    ),
-                  ),
+  context,
+  "Messages",
+  Icons.chat_bubble_rounded,
+  [const Color(0xFF6441A5), const Color(0xFF2a0845)],
+  () {
+    // Get the actual name from your user session service
+    final String currentStudentName = UserSession.currentUser?['name'] ?? "Student";
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        // Navigate to the selection list, passing the real student name
+        builder: (_) => TutorChatList(studentName: currentStudentName),
+      ),
+    );
+  },
+),
 
                   _buildGradientCard(
                     context,
