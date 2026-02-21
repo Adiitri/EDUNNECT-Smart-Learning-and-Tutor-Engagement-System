@@ -7,7 +7,7 @@ import 'ai_chat_screen.dart';
 import 'recommendation_screen.dart';
 import 'profile_screen.dart';
 import '../common/splash_screen.dart';
-import 'real_time_chat.dart'; 
+//import 'real_time_chat.dart';
 import 'tutor_chat_list.dart';
 
 class StudentDashboard extends StatefulWidget {
@@ -28,7 +28,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      
+
       // ---------------------------------------------------------
       // 1. BOTTOM NAVIGATION BAR
       // ---------------------------------------------------------
@@ -42,11 +42,13 @@ class _StudentDashboardState extends State<StudentDashboard> {
           });
           if (index == 1) {
             Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => TutorChatList(studentName: name), // Use 'name' from your build variable
-        ),
-      );
+              context,
+              MaterialPageRoute(
+                builder: (_) => TutorChatList(
+                  studentName: name,
+                ), // Use 'name' from your build variable
+              ),
+            );
           } else if (index == 2) {
             Navigator.push(
               context,
@@ -55,9 +57,18 @@ class _StudentDashboardState extends State<StudentDashboard> {
           }
         },
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.message_rounded), label: "Chat"),
-          BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: "Profile"),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_rounded),
+            label: "Home",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.message_rounded),
+            label: "Chat",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_rounded),
+            label: "Profile",
+          ),
         ],
       ),
 
@@ -69,7 +80,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
           children: [
             // CUSTOM GRADIENT HEADER
             Container(
-              padding: const EdgeInsets.only(top: 60, left: 20, right: 20, bottom: 30),
+              padding: const EdgeInsets.only(
+                top: 60,
+                left: 20,
+                right: 20,
+                bottom: 30,
+              ),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Color(0xFF4A00E0), Color(0xFF8E2DE2)],
@@ -137,56 +153,79 @@ class _StudentDashboardState extends State<StudentDashboard> {
                     "Find Tutors",
                     Icons.search_rounded,
                     [const Color(0xFF00C6FF), const Color(0xFF0072FF)],
-                    () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FindTutorScreen())),
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const FindTutorScreen(),
+                      ),
+                    ),
                   ),
                   _buildGradientCard(
                     context,
                     "AI Tutor",
                     Icons.auto_awesome,
                     [const Color(0xFFBC4E9C), const Color(0xFFF80759)],
-                    () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AiChatScreen())),
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AiChatScreen()),
+                    ),
                   ),
                   _buildGradientCard(
                     context,
                     "My Bookings",
                     Icons.calendar_month_rounded,
                     [const Color(0xFFF2994A), const Color(0xFFF2C94C)],
-                    () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyBookingsScreen())),
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const MyBookingsScreen(),
+                      ),
+                    ),
                   ),
                   _buildGradientCard(
                     context,
                     "Courses",
                     Icons.recommend_rounded,
                     [const Color(0xFF6a11cb), const Color(0xFF2575fc)],
-                    () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RecommendationScreen())),
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const RecommendationScreen(),
+                      ),
+                    ),
                   ),
-                  
+
                   // MESSAGES CARD
                   _buildGradientCard(
-  context,
-  "Messages",
-  Icons.chat_bubble_rounded,
-  [const Color(0xFF6441A5), const Color(0xFF2a0845)],
-  () {
-    // Get the actual name from your user session service
-    final String currentStudentName = UserSession.currentUser?['name'] ?? "Student";
+                    context,
+                    "Messages",
+                    Icons.chat_bubble_rounded,
+                    [const Color(0xFF6441A5), const Color(0xFF2a0845)],
+                    () {
+                      // Get the actual name from your user session service
+                      final String currentStudentName =
+                          UserSession.currentUser?['name'] ?? "Student";
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        // Navigate to the selection list, passing the real student name
-        builder: (_) => TutorChatList(studentName: currentStudentName),
-      ),
-    );
-  },
-),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          // Navigate to the selection list, passing the real student name
+                          builder: (_) =>
+                              TutorChatList(studentName: currentStudentName),
+                        ),
+                      );
+                    },
+                  ),
 
                   _buildGradientCard(
                     context,
                     "Profile",
                     Icons.person_rounded,
                     [const Color(0xFF11998e), const Color(0xFF38ef7d)],
-                    () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                    ),
                   ),
                 ],
               ),
@@ -199,7 +238,10 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
   // --- HELPER WIDGETS ---
 
-  Widget _buildHeaderCircleButton({required IconData icon, required VoidCallback onTap}) {
+  Widget _buildHeaderCircleButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.2),

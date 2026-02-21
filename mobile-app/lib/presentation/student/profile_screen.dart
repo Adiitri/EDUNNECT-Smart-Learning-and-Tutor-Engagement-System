@@ -9,8 +9,12 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = UserSession.currentUser;
-    final String name = user != null ? user['name'] : "Student";
-    final String email = user != null ? user['email'] : "student@example.com";
+
+    // ✅ NEW BULLETPROOF CODE
+    // The "?." safely checks the map, and "??" provides a backup if it is null.
+    // .toString() forces it to be a string even if the database sent something weird.
+    final String name = user?['name']?.toString() ?? "Student";
+    final String email = user?['email']?.toString() ?? "No email provided";
 
     return Scaffold(
       backgroundColor: Colors.white,

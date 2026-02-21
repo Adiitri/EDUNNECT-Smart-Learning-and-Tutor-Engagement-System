@@ -16,14 +16,17 @@ exports.register = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Create User
+        // Create User (Adding empty default values to prevent future nulls)
         user = new User({
             name,
             email,
             password: hashedPassword,
-            role,
-            location,
-            expertise
+            role: role || 'student',
+            location: location || '',
+            expertise: expertise || '',
+            phone: '',
+            about: '',
+            profileImage: ''
         });
 
         await user.save();
@@ -31,7 +34,21 @@ exports.register = async (req, res) => {
         // Create Token
         const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
         
-        res.json({ token, user: { id: user._id, name: user.name, role: user.role } });
+        // ✅ FIX: Send ALL user data back to Flutter, including the email!
+        res.json({ 
+            token, 
+            user: { 
+                _id: user._id, 
+                name: user.name, 
+                email: user.email, 
+                role: user.role,
+                location: user.location,
+                expertise: user.expertise,
+                phone: user.phone,
+                about: user.about,
+                profileImage: user.profileImage
+            } 
+        });
 
     } catch (err) {
         console.error("Register Error:", err.message);
@@ -56,7 +73,21 @@ exports.login = async (req, res) => {
         // Create Token
         const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
-        res.json({ token, user: { id: user._id, name: user.name, role: user.role } });
+        // ✅ FIX: Send ALL user data back to Flutter, including the email!
+        res.json({ 
+            token, 
+            user: { 
+                _id: user._id, 
+                name: user.name, 
+                email: user.email, 
+                role: user.role,
+                location: user.location,
+                expertise: user.expertise,
+                phone: user.phone,
+                about: user.about,
+                profileImage: user.profileImage
+            } 
+        });
 
     } catch (err) {
         console.error("Login Error:", err.message);
