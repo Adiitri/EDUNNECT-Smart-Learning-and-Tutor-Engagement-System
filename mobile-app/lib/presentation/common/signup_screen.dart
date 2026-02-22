@@ -2,6 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+// ✅ NEW IMPORTS: Added to handle session and navigation to the new profile screen
+import '../../services/user_session.dart';
+import 'complete_profile_screen.dart';
+
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
 
@@ -14,7 +18,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  // ✅ NEW: State variable to track the selected role
+  // State variable to track the selected role
   String _selectedRole = "student";
   bool _isLoading = false;
 
@@ -31,7 +35,7 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // ✅ FIX: Send the dynamically selected role to the backend
+      // Send the dynamically selected role to the backend
       final response = await http.post(
         Uri.parse(
           "http://127.0.0.1:5000/api/auth/register",
@@ -48,14 +52,25 @@ class _SignupScreenState extends State<SignupScreen> {
       setState(() => _isLoading = false);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        // ✅ UPDATED: Log the user in automatically and send to Profile Setup!
+        final responseData = jsonDecode(response.body);
+        UserSession.currentUser = responseData['user'];
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text("Account Created! Please Log In."),
+              content: Text("Account Created!"),
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.pop(context);
+
+          // Navigate to Complete Profile, flagged as a New User
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const CompleteProfileScreen(isNewUser: true),
+            ),
+          );
         }
       } else {
         final msg = jsonDecode(response.body)['msg'] ?? "Signup failed";
@@ -104,7 +119,7 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
               const SizedBox(height: 30),
 
-              // ✅ UPDATED: 3-Role Selector UI (Student, Tutor, Admin)
+              // 3-Role Selector UI (Student, Tutor, Admin)
               Row(
                 children: [
                   Expanded(
@@ -179,7 +194,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _register,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
+                    backgroundColor: const Color.fromARGB(255, 112, 68, 255),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),

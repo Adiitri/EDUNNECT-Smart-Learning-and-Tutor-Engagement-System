@@ -4,10 +4,12 @@ import '../../services/user_session.dart';
 import 'find_tutor_screen.dart';
 import 'my_bookings_screen.dart';
 import 'ai_chat_screen.dart';
-import 'recommendation_screen.dart' as rec;
-import 'profile_screen.dart';
+import 'recommendation_screen.dart';
 import '../common/splash_screen.dart';
 import 'tutor_chat_list.dart';
+
+// ✅ NEW: Import the dynamic profile screen instead of the old static one
+import '../common/complete_profile_screen.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -47,9 +49,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
               ),
             );
           } else if (index == 2) {
+            // ✅ UPDATED: Navigates to the Complete Profile Screen as an existing user
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              MaterialPageRoute(
+                builder: (_) => const CompleteProfileScreen(isNewUser: false),
+              ),
             );
           }
         },
@@ -70,7 +75,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
       ),
 
       // ---------------------------------------------------------
-      // 2. BODY (With ScrollView to prevent "Not Showing" issues)
+      // 2. BODY
       // ---------------------------------------------------------
       body: SingleChildScrollView(
         child: Column(
@@ -136,7 +141,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
             // DASHBOARD GRID CARDS
             Padding(
               padding: const EdgeInsets.all(20.0),
-              // Use shrinkWrap so it works inside SingleChildScrollView
               child: GridView.count(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -187,7 +191,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                     () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const rec.RecommendationScreen(),
+                        builder: (_) => const RecommendationScreen(),
                       ),
                     ),
                   ),
@@ -199,14 +203,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
                     Icons.chat_bubble_rounded,
                     [const Color(0xFF6441A5), const Color(0xFF2a0845)],
                     () {
-                      // Get the actual name from your user session service
                       final String currentStudentName =
                           UserSession.currentUser?['name'] ?? "Student";
 
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          // Navigate to the selection list, passing the real student name
                           builder: (_) =>
                               TutorChatList(studentName: currentStudentName),
                         ),
@@ -214,6 +216,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                     },
                   ),
 
+                  // ✅ UPDATED: PROFILE CARD
                   _buildGradientCard(
                     context,
                     "Profile",
@@ -221,7 +224,10 @@ class _StudentDashboardState extends State<StudentDashboard> {
                     [const Color(0xFF11998e), const Color(0xFF38ef7d)],
                     () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            const CompleteProfileScreen(isNewUser: false),
+                      ),
                     ),
                   ),
                 ],
@@ -241,7 +247,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        // ✅ FIXED: Using withValues instead of withOpacity
         color: Colors.white.withValues(alpha: 0.2),
         shape: BoxShape.circle,
       ),
@@ -271,7 +276,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              // ✅ FIXED: Using withValues instead of withOpacity
               color: gradientColors[0].withValues(alpha: 0.3),
               blurRadius: 8,
               offset: const Offset(0, 4),
@@ -283,7 +287,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
             Positioned(
               right: -15,
               top: -15,
-              // ✅ FIXED: Using withValues instead of withOpacity
               child: Icon(
                 icon,
                 size: 70,
