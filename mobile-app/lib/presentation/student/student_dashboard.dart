@@ -8,7 +8,7 @@ import 'recommendation_screen.dart';
 import '../common/splash_screen.dart';
 import 'tutor_chat_list.dart';
 
-// ✅ NEW: Import the dynamic profile screen instead of the old static one
+// ✅ Import the dynamic profile screen instead of the old static one
 import '../common/complete_profile_screen.dart';
 
 class StudentDashboard extends StatefulWidget {
@@ -38,7 +38,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
         selectedItemColor: const Color(0xFF4A00E0),
         unselectedItemColor: Colors.grey,
         onTap: (index) async {
-          // ✅ Added 'async'
           // 1. Visually highlight the tapped icon
           setState(() {
             _selectedIndex = index;
@@ -47,7 +46,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
           // 2. Navigate, and WAIT for the user to pop back
           if (index == 1) {
             await Navigator.push(
-              // ✅ Added 'await'
               context,
               MaterialPageRoute(
                 builder: (_) => TutorChatList(studentName: name),
@@ -61,7 +59,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
             }
           } else if (index == 2) {
             await Navigator.push(
-              // ✅ Added 'await'
               context,
               MaterialPageRoute(
                 builder: (_) => const CompleteProfileScreen(isNewUser: false),
@@ -233,7 +230,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                     },
                   ),
 
-                  // ✅ UPDATED: PROFILE CARD
+                  // PROFILE CARD
                   _buildGradientCard(
                     context,
                     "Profile",
@@ -274,6 +271,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
     );
   }
 
+  // ✅ UPDATED: Clean layout without the background icon stack
   Widget _buildGradientCard(
     BuildContext context,
     String title,
@@ -299,36 +297,23 @@ class _StudentDashboardState extends State<StudentDashboard> {
             ),
           ],
         ),
-        child: Stack(
-          children: [
-            Positioned(
-              right: -15,
-              top: -15,
-              child: Icon(
-                icon,
-                size: 70,
-                color: Colors.white.withValues(alpha: 0.1),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 30, color: Colors.white),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
-            ),
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(icon, size: 30, color: Colors.white),
-                  const SizedBox(height: 8),
-                  Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.poppins(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
