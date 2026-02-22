@@ -27,7 +27,8 @@ connectDB();
 
 // IMPORT ROUTES  <-- ADD THIS
 const authRoutes = require('./src/routes/authRoutes');
-const tutorRoutes = require('./src/routes/tutorRoutes');
+const tutorRoutes = require('./src/routes/tutors');
+
 
 const recommendationRoutes = require('./src/routes/recommendationRoutes'); // ADD THIS
 
@@ -36,11 +37,10 @@ const chatRoutes = require('./src/routes/chatRoutes'); // ADDED THIS
 
 // USE ROUTES  <-- ADD THIS
 app.use('/api/auth', authRoutes);
-app.use('/api/tutors', require('./src/routes/tutors'));
-app.use('/api/tutors', tutorRoutes);
+
 app.use('/api/admin', require('./src/routes/admin'));
 app.use('/api/recommendations', recommendationRoutes);
-
+app.use('/api/tutors',tutorRoutes);
 app.use('/api/chat', chatRoutes); // ADDED THIS
 
 // Basic Test Route
@@ -49,21 +49,33 @@ app.get('/', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-    console.log('User connected');
+    console.log(`User connected: ${socket.id}`);
 
-    socket.on('join_chat', (bookingId) => { // Name: join_chat
-        socket.join(bookingId);
-        console.log(`User joined room: ${bookingId}`);
+    socket.on('join_chat', (bookingId) => {
+        if (bookingId) {
+            socket.join(bookingId.toString()); // Force string to avoid mismatch
+            console.log(`User joined room: ${bookingId}`);
+        }
     });
 
-    socket.on('send_message', async (data) => { // Name: send_message
-        await chatController.saveSocketMessage(data);
+    socket.on('send_message', async (data) => {
+        try {
+            // Only broadcast if the message is actually saved
+            await chatController.saveSocketMessage(data);
 
-        io.to(data.bookingId).emit('receive_message', { // Name: receive_message
-            text: data.text,
-            senderId: data.senderId,
-            timestamp: new Date()
-        });
+            io.to(data.bookingId.toString()).emit('receive_message', {
+                text: data.text,
+                senderId: data.senderId,
+                timestamp: new Date()
+            });
+        } catch (error) {
+            console.error("Socket Error:", error.message);
+            // Optionally: socket.emit('error', 'Message failed to send');
+        }
+    });
+
+    socket.on('disconnect', () => {
+        console.log('User disconnected');
     });
 });
 // Start Server

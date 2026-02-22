@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../../services/user_session.dart';
 
 class RealTimeChatScreen extends StatefulWidget {
@@ -20,11 +22,33 @@ class _RealTimeChatScreenState extends State<RealTimeChatScreen> {
   @override
   void initState() {
     super.initState();
-    _initSocket();
+    _loadHistory(); // 1. Load old messages first
+    _initSocket();  // 2. Connect for new messages
+  }
+
+  Future<void> _loadHistory() async {
+    final bookingId = widget.tutor?['bookingId'];
+    try {
+      final response = await http.get(
+        Uri.parse("http://localhost:5000/api/chat/history/$bookingId"),
+      );
+      if (response.statusCode == 200) {
+        List data = json.decode(response.body);
+        setState(() {
+          _messages = data.map((m) => {
+            'text': m['message'],
+            'senderId': m['sender'],
+            'isMe': m['sender'] == UserSession.currentUser?['_id'],
+            'time': DateTime.parse(m['timestamp']),
+          }).toList().reversed.toList();
+        });
+      }
+    } catch (e) {
+      debugPrint("History error: $e");
+    }
   }
 
   void _initSocket() {
-    // If testing on a physical device, replace 'localhost' with your computer's IP address
     socket = IO.io('http://localhost:5000', <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': false,
@@ -34,15 +58,9 @@ class _RealTimeChatScreenState extends State<RealTimeChatScreen> {
 
     socket.onConnect((_) {
       if (mounted) setState(() => _isConnected = true);
-      // Join the unique room for this booking
       socket.emit('join_chat', widget.tutor?['bookingId']);
     });
 
-    socket.onDisconnect((_) {
-      if (mounted) setState(() => _isConnected = false);
-    });
-
-    // Listen for incoming messages
     socket.on('receive_message', (data) {
       if (mounted) {
         setState(() {
@@ -72,26 +90,16 @@ class _RealTimeChatScreenState extends State<RealTimeChatScreen> {
   }
 
   @override
-  void dispose() {
-    socket.disconnect();
-    _messageController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFECE5DD), // WhatsApp grey/green background
       appBar: AppBar(
         title: Text(widget.tutor?['name'] ?? "Chat", style: GoogleFonts.poppins()),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color(0xFF075E54), // WhatsApp Dark Green
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 15),
-            child: Icon(
-              Icons.circle, 
-              color: _isConnected ? Colors.greenAccent : Colors.redAccent, 
-              size: 12
-            ),
+            child: Icon(Icons.circle, color: _isConnected ? Colors.greenAccent : Colors.redAccent, size: 10),
           )
         ],
       ),
@@ -99,17 +107,14 @@ class _RealTimeChatScreenState extends State<RealTimeChatScreen> {
         children: [
           Expanded(
             child: ListView.builder(
-              reverse: true, // Shows newest messages at the bottom
-              padding: const EdgeInsets.all(15),
+              reverse: true,
+              padding: const EdgeInsets.all(10),
               itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                return _ChatBubble(
-                  message: msg['text'],
-                  isMe: msg['isMe'],
-                  time: msg['time'],
-                );
-              },
+              itemBuilder: (context, index) => _ChatBubble(
+                message: _messages[index]['text'],
+                isMe: _messages[index]['isMe'],
+                time: _messages[index]['time'],
+              ),
             ),
           ),
           _buildInput(),
@@ -120,36 +125,26 @@ class _RealTimeChatScreenState extends State<RealTimeChatScreen> {
 
   Widget _buildInput() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey.shade200)),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      color: Colors.white,
       child: Row(
         children: [
           Expanded(
             child: TextField(
               controller: _messageController,
               decoration: InputDecoration(
-                hintText: "Type a message...",
-                hintStyle: GoogleFonts.poppins(fontSize: 14),
+                hintText: "Type a message",
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(25), borderSide: BorderSide.none),
+                fillColor: Colors.grey[200],
                 filled: true,
-                fillColor: Colors.grey[100],
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25), 
-                  borderSide: BorderSide.none
-                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20),
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 5),
           CircleAvatar(
-            backgroundColor: Colors.teal,
-            child: IconButton(
-              icon: const Icon(Icons.send, color: Colors.white, size: 20), 
-              onPressed: _sendMessage
-            ),
+            backgroundColor: const Color(0xFF075E54),
+            child: IconButton(icon: const Icon(Icons.send, color: Colors.white), onPressed: _sendMessage),
           ),
         ],
       ),
@@ -157,55 +152,31 @@ class _RealTimeChatScreenState extends State<RealTimeChatScreen> {
   }
 }
 
-// --- MISSING CLASS DEFINITION BELOW ---
 class _ChatBubble extends StatelessWidget {
   final String message;
   final bool isMe;
   final DateTime time;
 
-  const _ChatBubble({
-    required this.message, 
-    required this.isMe, 
-    required this.time
-  });
+  const _ChatBubble({required this.message, required this.isMe, required this.time});
 
   @override
   Widget build(BuildContext context) {
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 5),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.75,
-        ),
+        margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 8),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isMe ? Colors.teal : Colors.grey[200],
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(15),
-            topRight: const Radius.circular(15),
-            bottomLeft: Radius.circular(isMe ? 15 : 0),
-            bottomRight: Radius.circular(isMe ? 0 : 15),
-          ),
+          color: isMe ? const Color(0xFFDCF8C6) : Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 1)],
         ),
         child: Column(
           crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
-            Text(
-              message,
-              style: GoogleFonts.poppins(
-                color: isMe ? Colors.white : Colors.black87,
-                fontSize: 14,
-              ),
-            ),
+            Text(message, style: const TextStyle(fontSize: 16)),
             const SizedBox(height: 4),
-            Text(
-              "${time.hour}:${time.minute.toString().padLeft(2, '0')}",
-              style: TextStyle(
-                fontSize: 10, 
-                color: isMe ? Colors.white70 : Colors.black54
-              ),
-            ),
+            Text("${time.hour}:${time.minute.toString().padLeft(2, '0')}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
           ],
         ),
       ),
