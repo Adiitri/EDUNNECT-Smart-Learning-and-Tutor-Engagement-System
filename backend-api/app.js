@@ -6,7 +6,7 @@ const connectDB = require('./src/config/db');
 require('dotenv').config();
 
 
-
+const chatController = require('./src/controllers/chatController')
 
 // Initialize App
 const app = express();
@@ -51,29 +51,21 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
     console.log('User connected');
 
-    socket.on('join_chat', (bookingId) => {
+    socket.on('join_chat', (bookingId) => { // Name: join_chat
         socket.join(bookingId);
         console.log(`User joined room: ${bookingId}`);
     });
 
-    socket.on('send_message', async (data) => {
-        // 1. Save message to DB via controller
-        // data should contain: { bookingId, senderId, text }
+    socket.on('send_message', async (data) => { // Name: send_message
         await chatController.saveSocketMessage(data);
 
-        // 2. Broadcast to the specific booking room
-        io.to(data.bookingId).emit('receive_message', {
+        io.to(data.bookingId).emit('receive_message', { // Name: receive_message
             text: data.text,
             senderId: data.senderId,
             timestamp: new Date()
         });
     });
-
-    socket.on('disconnect', () => {
-        console.log('User disconnected');
-    });
 });
-
 // Start Server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {

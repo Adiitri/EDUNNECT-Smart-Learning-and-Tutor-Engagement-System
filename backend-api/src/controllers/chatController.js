@@ -1,38 +1,46 @@
 const Chat = require('../models/Chat');
 const Booking = require('../models/Booking');
 
-// NEW: Fetch all tutors with whom the student has a 'Confirmed' booking
+// 1. Fetch all tutors where this student has a 'Confirmed' status
 exports.getConfirmedTutors = async (req, res) => {
     try {
         const { studentName } = req.params; 
 
-        // Find bookings for this student that are confirmed
         const confirmedBookings = await Booking.find({ 
             studentName: studentName, 
             status: 'Confirmed' 
         });
 
-        if (!confirmedBookings || confirmedBookings.length === 0) {
-            return res.status(200).json([]); // Return empty list if no tutors found
-        }
-
-        res.status(200).json(confirmedBookings);
+        res.status(200).json(confirmedBookings || []);
     } catch (error) {
         res.status(500).json({ message: "Error fetching confirmed tutors", error: error.message });
     }
 };
 
-// Fetch history for a specific booking (Your existing code)
+// --- FOR TUTORS (ADD THIS) ---
+// Fetch all students where this tutor has a 'Confirmed' status
+exports.getConfirmedStudents = async (req, res) => {
+    try {
+        const { tutorId } = req.params; // We use tutorId because names might not be unique
+
+        const confirmedBookings = await Booking.find({ 
+            tutorId: tutorId, 
+            status: 'Confirmed' 
+        });
+
+        res.status(200).json(confirmedBookings || []);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching confirmed students", error: error.message });
+    }
+};
+
+// 2. Fetch history for a specific booking ID
 exports.getChatHistory = async (req, res) => {
     try {
         const { bookingId } = req.params;
         const booking = await Booking.findById(bookingId);
         
-        if (!booking) {
-            return res.status(404).json({ message: "Booking not found" });
-        }
-
-        if (booking.status.toLowerCase() !== 'confirmed') {
+        if (!booking || booking.status.toLowerCase() !== 'confirmed') {
             return res.status(403).json({ message: "Chat is only available for confirmed bookings" });
         }
 
@@ -43,7 +51,7 @@ exports.getChatHistory = async (req, res) => {
     }
 };
 
-// Logic to save message for Socket.io (Your existing code)
+// 3. Save message (Used by Socket.io in app.js)
 exports.saveSocketMessage = async (data) => {
     try {
         const newMessage = new Chat({

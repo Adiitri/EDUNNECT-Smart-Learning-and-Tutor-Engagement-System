@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
+import '../../services/user_session.dart';
 
 class RealTimeChatScreen extends StatefulWidget {
   final Map<String, dynamic>? tutor;
-
   const RealTimeChatScreen({super.key, this.tutor});
 
   @override
@@ -12,89 +13,94 @@ class RealTimeChatScreen extends StatefulWidget {
 
 class _RealTimeChatScreenState extends State<RealTimeChatScreen> {
   final TextEditingController _messageController = TextEditingController();
-  
-  // Added a welcome message so the screen isn't blank
-  final List<Map<String, dynamic>> _messages = [
-    {
-      'text': "Hi! How can I help you today?",
-      'isMe': false,
-      'time': DateTime.now(),
-    }
-  ];
+  late IO.Socket socket;
+  List<Map<String, dynamic>> _messages = [];
+  bool _isConnected = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initSocket();
+  }
+
+  void _initSocket() {
+    // If testing on a physical device, replace 'localhost' with your computer's IP address
+    socket = IO.io('http://localhost:5000', <String, dynamic>{
+      'transports': ['websocket'],
+      'autoConnect': false,
+    });
+
+    socket.connect();
+
+    socket.onConnect((_) {
+      if (mounted) setState(() => _isConnected = true);
+      // Join the unique room for this booking
+      socket.emit('join_chat', widget.tutor?['bookingId']);
+    });
+
+    socket.onDisconnect((_) {
+      if (mounted) setState(() => _isConnected = false);
+    });
+
+    // Listen for incoming messages
+    socket.on('receive_message', (data) {
+      if (mounted) {
+        setState(() {
+          _messages.insert(0, {
+            'text': data['text'],
+            'senderId': data['senderId'],
+            'isMe': data['senderId'] == UserSession.currentUser?['_id'],
+            'time': DateTime.now(),
+          });
+        });
+      }
+    });
+  }
 
   void _sendMessage() {
     final text = _messageController.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || !_isConnected) return;
 
-    setState(() {
-      _messages.insert(0, {
-        'text': text,
-        'isMe': true,
-        'time': DateTime.now(),
-      });
-    });
+    final messageData = {
+      'bookingId': widget.tutor?['bookingId'],
+      'senderId': UserSession.currentUser?['_id'],
+      'text': text,
+    };
+
+    socket.emit('send_message', messageData);
     _messageController.clear();
   }
 
   @override
-  Widget build(BuildContext context) {
-    final String tutorName = widget.tutor?['name'] ?? "Tutor Support";
+  void dispose() {
+    socket.disconnect();
+    _messageController.dispose();
+    super.dispose();
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF4A00E0), Color(0xFF8E2DE2)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        title: Text(widget.tutor?['name'] ?? "Chat", style: GoogleFonts.poppins()),
+        backgroundColor: Colors.teal,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 15),
+            child: Icon(
+              Icons.circle, 
+              color: _isConnected ? Colors.greenAccent : Colors.redAccent, 
+              size: 12
             ),
-          ),
-        ),
-        title: Row(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-              onPressed: () => Navigator.pop(context),
-            ),
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: Colors.white24,
-              child: Text(
-                tutorName[0].toUpperCase(),
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tutorName,
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-                const Text(
-                  "Online",
-                  style: TextStyle(fontSize: 11, color: Colors.white70),
-                ),
-              ],
-            ),
-          ],
-        ),
+          )
+        ],
       ),
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
-              reverse: true,
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 20),
+              reverse: true, // Shows newest messages at the bottom
+              padding: const EdgeInsets.all(15),
               itemCount: _messages.length,
               itemBuilder: (context, index) {
                 final msg = _messages[index];
@@ -106,15 +112,15 @@ class _RealTimeChatScreenState extends State<RealTimeChatScreen> {
               },
             ),
           ),
-          _buildMessageInput(),
+          _buildInput(),
         ],
       ),
     );
   }
 
-  Widget _buildMessageInput() {
+  Widget _buildInput() {
     return Container(
-      padding: const EdgeInsets.only(left: 15, right: 15, bottom: 30, top: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: Colors.grey.shade200)),
@@ -125,28 +131,24 @@ class _RealTimeChatScreenState extends State<RealTimeChatScreen> {
             child: TextField(
               controller: _messageController,
               decoration: InputDecoration(
-                hintText: "Write a message...",
-                hintStyle: GoogleFonts.poppins(color: Colors.grey[400], fontSize: 14),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25),
-                  borderSide: BorderSide.none,
-                ),
+                hintText: "Type a message...",
+                hintStyle: GoogleFonts.poppins(fontSize: 14),
                 filled: true,
                 fillColor: Colors.grey[100],
                 contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25), 
+                  borderSide: BorderSide.none
+                ),
               ),
             ),
           ),
-          const SizedBox(width: 10),
-          GestureDetector(
-            onTap: _sendMessage,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(colors: [Color(0xFF4A00E0), Color(0xFF8E2DE2)]),
-              ),
-              child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+          const SizedBox(width: 8),
+          CircleAvatar(
+            backgroundColor: Colors.teal,
+            child: IconButton(
+              icon: const Icon(Icons.send, color: Colors.white, size: 20), 
+              onPressed: _sendMessage
             ),
           ),
         ],
@@ -155,59 +157,58 @@ class _RealTimeChatScreenState extends State<RealTimeChatScreen> {
   }
 }
 
+// --- MISSING CLASS DEFINITION BELOW ---
 class _ChatBubble extends StatelessWidget {
   final String message;
   final bool isMe;
   final DateTime time;
 
-  const _ChatBubble({required this.message, required this.isMe, required this.time});
-
-  // Manual formatting to replace DateFormat
-  String _formatTime(DateTime dt) {
-    final hour = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
-    final minute = dt.minute.toString().padLeft(2, '0');
-    final period = dt.hour >= 12 ? "PM" : "AM";
-    return "$hour:$minute $period";
-  }
+  const _ChatBubble({
+    required this.message, 
+    required this.isMe, 
+    required this.time
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-      children: [
-        Align(
-          alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-          child: Container(
-            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-            margin: const EdgeInsets.symmetric(vertical: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              gradient: isMe ? const LinearGradient(colors: [Color(0xFF4A00E0), Color(0xFF8E2DE2)]) : null,
-              color: isMe ? null : Colors.grey[200],
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(18),
-                topRight: const Radius.circular(18),
-                bottomLeft: Radius.circular(isMe ? 18 : 0),
-                bottomRight: Radius.circular(isMe ? 0 : 18),
-              ),
-            ),
-            child: Text(
+    return Align(
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
+        decoration: BoxDecoration(
+          color: isMe ? Colors.teal : Colors.grey[200],
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(15),
+            topRight: const Radius.circular(15),
+            bottomLeft: Radius.circular(isMe ? 15 : 0),
+            bottomRight: Radius.circular(isMe ? 0 : 15),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            Text(
               message,
               style: GoogleFonts.poppins(
                 color: isMe ? Colors.white : Colors.black87,
                 fontSize: 14,
               ),
             ),
-          ),
+            const SizedBox(height: 4),
+            Text(
+              "${time.hour}:${time.minute.toString().padLeft(2, '0')}",
+              style: TextStyle(
+                fontSize: 10, 
+                color: isMe ? Colors.white70 : Colors.black54
+              ),
+            ),
+          ],
         ),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12, left: 5, right: 5),
-          child: Text(
-            _formatTime(time),
-            style: TextStyle(fontSize: 10, color: Colors.grey[500]),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
