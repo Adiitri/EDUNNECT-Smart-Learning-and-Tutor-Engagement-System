@@ -37,25 +37,42 @@ class _StudentDashboardState extends State<StudentDashboard> {
         currentIndex: _selectedIndex,
         selectedItemColor: const Color(0xFF4A00E0),
         unselectedItemColor: Colors.grey,
-        onTap: (index) {
+        onTap: (index) async {
+          // ✅ Added 'async'
+          // 1. Visually highlight the tapped icon
           setState(() {
             _selectedIndex = index;
           });
+
+          // 2. Navigate, and WAIT for the user to pop back
           if (index == 1) {
-            Navigator.push(
+            await Navigator.push(
+              // ✅ Added 'await'
               context,
               MaterialPageRoute(
                 builder: (_) => TutorChatList(studentName: name),
               ),
             );
+            // 3. When they return, instantly reset the highlight to Home
+            if (mounted) {
+              setState(() {
+                _selectedIndex = 0;
+              });
+            }
           } else if (index == 2) {
-            // ✅ UPDATED: Navigates to the Complete Profile Screen as an existing user
-            Navigator.push(
+            await Navigator.push(
+              // ✅ Added 'await'
               context,
               MaterialPageRoute(
                 builder: (_) => const CompleteProfileScreen(isNewUser: false),
               ),
             );
+            // 3. When they return, instantly reset the highlight to Home
+            if (mounted) {
+              setState(() {
+                _selectedIndex = 0;
+              });
+            }
           }
         },
         items: const [
