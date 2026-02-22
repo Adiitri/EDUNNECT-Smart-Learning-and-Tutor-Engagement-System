@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/recommendation_service.dart';
 import '../../services/user_session.dart';
+import 'package:flutter/services.dart'; // <--- Required for the Copy-to-Clipboard tool
 
 class RecommendationScreen extends StatefulWidget {
   const RecommendationScreen({super.key});
@@ -152,118 +153,175 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     );
   }
 
-  // --- HELPER WIDGET TO BUILD CARDS FROM YOUR API DATA ---
+  // --- UPGRADED PROFESSIONAL COURSE CARD ---
   Widget _buildApiCourseCard(dynamic course) {
-    // Safely extracting your backend keys ('title', 'category')
-    // and providing fallbacks just in case the AI misses something.
     final String title = course['title'] ?? "Untitled Course";
-    final String category = course['category'] ?? "Personalized Module";
-
-    // Fallbacks for data your API might not send yet
-    final String tutor = course['tutor'] ?? "AI Selected Expert";
+    final String category = course['category'] ?? "Module";
+    final String tutor = course['tutor'] ?? "Expert";
     final String rating = course['rating']?.toString() ?? "4.8";
+    final String level = course['level'] ?? "All Levels";
+    final String duration = course['duration'] ?? "1 Hour";
+    final String youtubeUrl = course['youtube_url'] ?? "https://youtube.com";
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 3,
+      margin: const EdgeInsets.only(bottom: 20),
+      elevation: 4,
       shadowColor: Colors.black12,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blueAccent.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top Banner (Simulating a course thumbnail)
+          Container(
+            height: 80,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              child: const Icon(
-                Icons.auto_awesome, // AI Icon
-                size: 30,
-                color: Colors.blueAccent,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
+            child: Center(
+              child: Icon(
+                Icons.play_circle_fill_rounded,
+                size: 40,
+                color: Colors.white.withValues(alpha: 0.8),
+              ),
+            ),
+          ),
+
+          // Course Details
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Category Chip
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF8E2DE2).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    category.toUpperCase(),
                     style: GoogleFonts.poppins(
-                      fontSize: 16,
+                      fontSize: 10,
                       fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Tutor: $tutor",
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      color: Colors.grey[700],
+                      color: const Color(0xFF8E2DE2),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.star_rounded,
-                        color: Colors.amber,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        rating,
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          category,
-                          style: GoogleFonts.poppins(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black54,
+                ),
+                const SizedBox(height: 10),
+
+                // Title & Tutor
+                Text(
+                  title,
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  "By $tutor",
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Info Badges (Rating, Level, Duration)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildInfoBadge(Icons.star_rounded, rating, Colors.amber),
+                    _buildInfoBadge(
+                      Icons.bar_chart_rounded,
+                      level,
+                      Colors.blue,
+                    ),
+                    _buildInfoBadge(
+                      Icons.timer_rounded,
+                      duration,
+                      Colors.green,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+                const SizedBox(height: 12),
+
+                // --- SAFE ACTION BUTTON (CLIPBOARD) ---
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      // Instantly copy the URL to the user's clipboard
+                      await Clipboard.setData(ClipboardData(text: youtubeUrl));
+
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              "🎬 Link copied! Paste it in your browser.",
+                            ),
+                            backgroundColor: const Color(0xFF8E2DE2),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
-                        ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.copy_rounded),
+                    label: Text(
+                      "Copy YouTube Link",
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ],
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            IconButton(
-              icon: const Icon(
-                Icons.arrow_forward_ios_rounded,
-                color: Color(0xFF8E2DE2),
-                size: 20,
-              ),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text("Opening $title..."),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
+    );
+  }
+
+  // Small Helper for the tiny info icons
+  Widget _buildInfoBadge(IconData icon, String text, Color iconColor) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: iconColor),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey[800],
+          ),
+        ),
+      ],
     );
   }
 }

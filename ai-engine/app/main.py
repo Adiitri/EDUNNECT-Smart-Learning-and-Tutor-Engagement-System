@@ -39,28 +39,68 @@ def read_root():
 
 # --- NEW: RECOMMENDATION ROUTE ---
 # This matches your Flutter "RecommendationService.getRecommendations('user123')" call
+import urllib.parse # <-- Add this to the top of main.py
+
+
 @app.get("/recommendations/{user_id}")
 def get_recommendations(user_id: str):
-    return [
+    # Foundational Full Courses & Bootcamps
+    courses = [
         {
-            "title": "Introduction to AI",
-            "category": "Computer Science",
-            "tutor": "Dr. Aris",
-            "rating": 4.9
+            "title": "Machine Learning Full Course for Beginners",
+            "category": "AI/ML",
+            "tutor": "Andrew Ng",
+            "rating": 4.9,
+            "level": "Beginner",
+            "duration": "10 Hours"
         },
         {
-            "title": "Flutter UI Mastery",
-            "category": "Mobile Dev",
-            "tutor": "Dev Sam",
-            "rating": 4.7
-        },
-        {
-            "title": "Node.js Backend Pro",
+            "title": "Complete Frontend Web Development Bootcamp",
             "category": "Web Dev",
-            "tutor": "Mandal Sir",
-            "rating": 4.8
+            "tutor": "Dr. Angela Yu",
+            "rating": 4.8,
+            "level": "All Levels",
+            "duration": "15 Hours"
+        },
+        {
+            "title": "Data Structures and Algorithms in Python",
+            "category": "Computer Science",
+            "tutor": "FreeCodeCamp",
+            "rating": 4.9,
+            "level": "Intermediate",
+            "duration": "12 Hours"
+        },
+        {
+            "title": "Internet of Things (IoT) Fundamentals",
+            "category": "Hardware",
+            "tutor": "NetworkChuck",
+            "rating": 4.7,
+            "level": "Beginner",
+            "duration": "5 Hours"
+        },
+        {
+            "title": "Quantum Computing for Computer Scientists",
+            "category": "Quantum",
+            "tutor": "IBM Quantum",
+            "rating": 4.8,
+            "level": "Advanced",
+            "duration": "8 Hours"
         }
     ]
+
+    # Dynamically generate safe YouTube search URLs for full courses
+    for course in courses:
+        query = urllib.parse.quote(f"{course['title']} {course['tutor']} full course")
+        course["youtube_url"] = f"https://www.youtube.com/results?search_query={query}"
+
+    return courses
+
+    # Dynamically generate YouTube search URLs
+    for course in courses:
+        query = urllib.parse.quote(f"{course['title']} {course['tutor']} full course")
+        course["youtube_url"] = f"https://www.youtube.com/results?search_query={query}"
+
+    return courses
 
 # AI Chat Route
 @app.post("/ask")
