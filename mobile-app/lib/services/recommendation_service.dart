@@ -2,22 +2,28 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class RecommendationService {
-  // Use http://10.0.2.2:5000 for Android Emulator
-  // Use http://localhost:5000 for iOS or Web
-  static const String baseUrl = "http://localhost:5000/api/recommendations";
+  // 🎯 Use 127.0.0.1 for Chrome Web.
+  // (Note: Use your IP like 192.168.x.x if testing on a real mobile device)
+  static const String baseUrl = "http://127.0.0.1:8000";
 
   static Future<List<dynamic>> getRecommendations(String userId) async {
     try {
-      // We pass the userId to get personalized courses from the AI engine
-      final response = await http.get(Uri.parse('$baseUrl/$userId'));
+      final response = await http
+          .get(Uri.parse("$baseUrl/recommendations/$userId"))
+          .timeout(const Duration(seconds: 5)); // Don't wait forever
 
       if (response.statusCode == 200) {
+        // Successfully got data from Python FastAPI
         return jsonDecode(response.body);
       } else {
-        throw Exception("Failed to load recommendations");
+        throw Exception("Server returned ${response.statusCode}");
       }
     } catch (e) {
-      throw Exception("Error connecting to AI server: $e");
+      // This triggers the 'snapshot.hasError' in your RecommendationScreen
+      print("Error in RecommendationService: $e");
+      throw Exception(
+        "Could not connect to AI Engine. Is it running on port 8000?",
+      );
     }
   }
 }

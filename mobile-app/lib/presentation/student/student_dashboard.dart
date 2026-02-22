@@ -4,10 +4,9 @@ import '../../services/user_session.dart';
 import 'find_tutor_screen.dart';
 import 'my_bookings_screen.dart';
 import 'ai_chat_screen.dart';
-import 'recommendation_screen.dart';
+import 'recommendation_screen.dart' as rec;
 import 'profile_screen.dart';
 import '../common/splash_screen.dart';
-//import 'real_time_chat.dart';
 import 'tutor_chat_list.dart';
 
 class StudentDashboard extends StatefulWidget {
@@ -44,9 +43,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => TutorChatList(
-                  studentName: name,
-                ), // Use 'name' from your build variable
+                builder: (_) => TutorChatList(studentName: name),
               ),
             );
           } else if (index == 2) {
@@ -190,7 +187,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                     () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const RecommendationScreen(),
+                        builder: (_) => const rec.RecommendationScreen(),
                       ),
                     ),
                   ),
@@ -244,7 +241,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        // ✅ FIXED: Using withValues instead of withOpacity
+        color: Colors.white.withValues(alpha: 0.2),
         shape: BoxShape.circle,
       ),
       child: IconButton(
@@ -273,7 +271,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: gradientColors[0].withOpacity(0.3),
+              // ✅ FIXED: Using withValues instead of withOpacity
+              color: gradientColors[0].withValues(alpha: 0.3),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -284,7 +283,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
             Positioned(
               right: -15,
               top: -15,
-              child: Icon(icon, size: 70, color: Colors.white.withOpacity(0.1)),
+              // ✅ FIXED: Using withValues instead of withOpacity
+              child: Icon(
+                icon,
+                size: 70,
+                color: Colors.white.withValues(alpha: 0.1),
+              ),
             ),
             Center(
               child: Column(
