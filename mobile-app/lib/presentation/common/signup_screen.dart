@@ -69,7 +69,7 @@ class _SignupScreenState extends State<SignupScreen> {
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text("Error connecting to server. Is it running?"),
             backgroundColor: Colors.red,
           ),
@@ -104,7 +104,7 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
               const SizedBox(height: 30),
 
-              // ✅ NEW: The Role Selector UI
+              // ✅ UPDATED: 3-Role Selector UI (Student, Tutor, Admin)
               Row(
                 children: [
                   Expanded(
@@ -114,9 +114,17 @@ class _SignupScreenState extends State<SignupScreen> {
                       "student",
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: _buildRoleCard("Tutor", Icons.work_rounded, "tutor"),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildRoleCard(
+                      "Admin",
+                      Icons.admin_panel_settings_rounded,
+                      "admin",
+                    ),
                   ),
                 ],
               ),
@@ -207,7 +215,9 @@ class _SignupScreenState extends State<SignupScreen> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(
+          vertical: 12,
+        ), // Slightly reduced padding
         decoration: BoxDecoration(
           color: isSelected
               ? Colors.blueAccent.withValues(alpha: 0.1)
@@ -222,13 +232,14 @@ class _SignupScreenState extends State<SignupScreen> {
           children: [
             Icon(
               icon,
-              size: 32,
+              size: 28, // Slightly reduced icon size to fit 3 items
               color: isSelected ? Colors.blueAccent : Colors.grey,
             ),
             const SizedBox(height: 8),
             Text(
               title,
               style: TextStyle(
+                fontSize: 13, // Slightly reduced font size to prevent overflow
                 fontWeight: FontWeight.bold,
                 color: isSelected ? Colors.blueAccent : Colors.grey,
               ),
