@@ -2,10 +2,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:latlong2/latlong.dart';
 import '../../services/user_session.dart';
 import '../student/student_dashboard.dart';
 import '../tutor/tutor_dashboard.dart';
 import '../admin/admin_dashboard.dart';
+import 'pick_location_screen.dart';
 
 class CompleteProfileScreen extends StatefulWidget {
   final bool isNewUser; // Helps us decide where to navigate after saving
@@ -19,6 +21,8 @@ class CompleteProfileScreen extends StatefulWidget {
 class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
+  double? _latitude; // to store selected coordinates
+  double? _longitude;
   final TextEditingController _aboutController = TextEditingController();
   final TextEditingController _classController =
       TextEditingController(); // For Students
@@ -39,6 +43,9 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
 
     _phoneController.text = user?['phone'] ?? '';
     _locationController.text = user?['location'] ?? '';
+    // prefill lat/lng if available
+    _latitude = user?['latitude'];
+    _longitude = user?['longitude'];
     _aboutController.text = user?['about'] ?? '';
     _expertiseController.text = user?['expertise'] ?? '';
     _classController.text = user?['classGrade'] ?? '';
@@ -60,6 +67,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
           "about": _aboutController.text, // Used for 'Subjects of Interest'
           "classGrade": _classController.text,
           "expertise": _expertiseController.text,
+          "latitude": _latitude,
+          "longitude": _longitude,
         }),
       );
 
@@ -68,7 +77,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       if (response.statusCode == 200) {
         // Update local session data
         final updatedData = jsonDecode(response.body)['user'];
-        UserSession.currentUser = updatedData;
+        UserSession.setUser(updatedData);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -157,10 +166,33 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
             ),
             const SizedBox(height: 16),
 
-            _buildTextField(
-              "Location / City",
-              Icons.location_on_rounded,
-              _locationController,
+            // location field with map picker button
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTextField(
+                    "Location / City",
+                    Icons.location_on_rounded,
+                    _locationController,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.map),
+                  onPressed: () async {
+                    final coords = await Navigator.push<LatLng>(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const PickLocationScreen()),
+                    );
+                    if (coords != null) {
+                      _locationController.text =
+                          '${coords.latitude.toStringAsFixed(5)}, ${coords.longitude.toStringAsFixed(5)}';
+                      _latitude = coords.latitude;
+                      _longitude = coords.longitude;
+                    }
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: 16),
 

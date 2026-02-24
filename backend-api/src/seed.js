@@ -33,6 +33,8 @@ const tutorsData = [
     password: "rohit",
     subject: "Chemistry",
     location: "Bangalore",
+    latitude: 12.9716,
+    longitude: 77.5946,
     rating: "4.9",
     price: "₹500/hr",
     experience: "5 Years",
@@ -44,6 +46,8 @@ const tutorsData = [
     password: "priya",
     subject: "Mathematics",
     location: "Mumbai",
+    latitude: 19.0760,
+    longitude: 72.8777,
     rating: "4.8",
     price: "₹600/hr",
     experience: "7 Years",
@@ -55,6 +59,8 @@ const tutorsData = [
     password: "amit",
     subject: "Physics",
     location: "Delhi",
+    latitude: 28.7041,
+    longitude: 77.1025,
     rating: "4.7",
     price: "₹450/hr",
     experience: "4 Years",
@@ -66,6 +72,8 @@ const tutorsData = [
     password: "sneha",
     subject: "Biology",
     location: "Pune",
+    latitude: 18.5204,
+    longitude: 73.8567,
     rating: "4.9",
     price: "₹550/hr",
     experience: "6 Years",
@@ -77,6 +85,8 @@ const tutorsData = [
     password: "john",
     subject: "English",
     location: "Goa",
+    latitude: 15.2993,
+    longitude: 74.1240,
     rating: "4.6",
     price: "₹400/hr",
     experience: "10 Years",
@@ -101,11 +111,9 @@ const seedDB = async () => {
     await Tutor.deleteMany({});
     console.log("Deleted ALL Tutors");
 
-    // C. Delete Users (But keep Admins/Students safely if possible)
-    // We remove ANY user that has a "tutor" role or matches the new emails
-    // Or you can delete specific old emails manually if they persist:
-    await User.deleteMany({ email: { $in: ["rahul@edunnect.com", ...tutorsData.map(t => t.email)] } });
-    console.log("Deleted Old Tutor Logins");
+    // C. Delete ALL Users to ensure clean state with proper GeoJSON location field
+    await User.deleteMany({});
+    console.log("Deleted ALL Users");
 
     // ============================================
     // 2. CREATE NEW DATA 
@@ -122,7 +130,11 @@ const seedDB = async () => {
             email: tutor.email,
             password: hashedPassword,
             role: "tutor",
-            city: tutor.location
+            locationText: tutor.location,  // human-readable location for display
+            location: {
+              type: 'Point',
+              coordinates: [tutor.longitude || 0, tutor.latitude || 0]
+            }
         });
         await newUser.save();
 
@@ -135,12 +147,31 @@ const seedDB = async () => {
             price: tutor.price,
             experience: tutor.experience,
             about: tutor.about,
-            email: tutor.email
+            email: tutor.email,
+            geo: {
+                type: 'Point',
+                coordinates: [tutor.longitude || 0, tutor.latitude || 0]
+            }
         });
         await newProfile.save();
         
         console.log(`Created: ${tutor.name}`);
     }
+
+    // Explicitly create 2dsphere indexes
+    console.log("Creating 2dsphere indexes...");
+    
+    // Drop old index if it exists
+    try {
+      await User.collection.dropIndex('location_2dsphere');
+    } catch (e) {
+      // Index doesn't exist, that's fine
+    }
+    
+    // Create new index
+    await User.collection.createIndex({ location: '2dsphere' });
+    await Tutor.collection.createIndex({ geo: '2dsphere' });
+    console.log("2dsphere indexes created successfully!");
 
     console.log("Database Reset Complete! Old Rahul is gone.");
     process.exit();

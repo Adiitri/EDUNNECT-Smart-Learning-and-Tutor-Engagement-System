@@ -42,7 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
         final data = jsonDecode(response.body);
 
         // 2. SAVE SESSION
-        UserSession.currentUser = data['user'];
+        UserSession.setUser(data['user']);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

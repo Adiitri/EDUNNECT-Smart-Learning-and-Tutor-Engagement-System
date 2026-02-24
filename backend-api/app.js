@@ -28,10 +28,9 @@ connectDB();
 // IMPORT ROUTES  <-- ADD THIS
 const authRoutes = require('./src/routes/authRoutes');
 const tutorRoutes = require('./src/routes/tutors');
-
+const tutorGeoRoutes = require('./src/routes/tutorRoutes'); // handles /nearby search
 
 const recommendationRoutes = require('./src/routes/recommendationRoutes'); // ADD THIS
-
 
 const chatRoutes = require('./src/routes/chatRoutes'); // ADDED THIS
 
@@ -40,7 +39,9 @@ app.use('/api/auth', authRoutes);
 
 app.use('/api/admin', require('./src/routes/admin'));
 app.use('/api/recommendations', recommendationRoutes);
-app.use('/api/tutors',tutorRoutes);
+app.use('/api/tutors', tutorRoutes);
+// geolocation helpers share the same base path
+app.use('/api/tutors', tutorGeoRoutes);
 app.use('/api/chat', chatRoutes); // ADDED THIS
 
 // Basic Test Route

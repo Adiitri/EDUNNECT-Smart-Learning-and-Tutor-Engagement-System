@@ -4,6 +4,16 @@ class UserSession {
 
   // 1. SET SESSION (This fixes your Null Error!) 🛡️
   static void setUser(Map<String, dynamic> userData) {
+    // parse coordinates from a geo field if present
+    double lat = 0, lng = 0;
+    if (userData['location'] is Map) {
+      final coords = userData['location']['coordinates'];
+      if (coords is List && coords.length >= 2) {
+        lng = (coords[0] as num).toDouble();
+        lat = (coords[1] as num).toDouble();
+      }
+    }
+
     // We intercept the raw data from MongoDB and replace any 'null' with safe strings
     currentUser = {
       '_id': userData['_id'] ?? '',
@@ -11,9 +21,12 @@ class UserSession {
       'email': userData['email'] ?? '',
       'role': userData['role'] ?? 'student',
 
-      // 👇 The fix for the Profile Screen crash:
+      // profile fields
       'phone': userData['phone'] ?? 'Not provided',
-      'location': userData['location'] ?? 'Location not set',
+      // locationText is the human string; keep backwards compat with 'location'
+      'location': userData['locationText'] ?? userData['location'] ?? 'Location not set',
+      'latitude': lat,
+      'longitude': lng,
       'about': userData['about'] ?? 'Hey there! I am using Edunnect.',
       'profileImage': userData['profileImage'] ?? '',
     };

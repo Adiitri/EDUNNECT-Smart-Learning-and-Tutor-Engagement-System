@@ -119,7 +119,7 @@ class _TutorDetailsScreenState extends State<TutorDetailsScreen> {
                     ),
                   ),
                   Text(
-                    widget.tutor['subject'],
+                    widget.tutor['subject'] ?? widget.tutor['expertise'] ?? '',
                     style: const TextStyle(fontSize: 20, color: Colors.grey),
                   ),
 
@@ -142,7 +142,7 @@ class _TutorDetailsScreenState extends State<TutorDetailsScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        widget.tutor['location'] ?? "Online",
+                        widget.tutor['location'] ?? widget.tutor['locationText'] ?? "Online",
                         style: const TextStyle(fontSize: 18),
                       ),
                     ],

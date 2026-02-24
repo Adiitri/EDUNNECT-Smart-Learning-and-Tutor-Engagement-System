@@ -54,7 +54,7 @@ class _SignupScreenState extends State<SignupScreen> {
       if (response.statusCode == 200 || response.statusCode == 201) {
         // ✅ UPDATED: Log the user in automatically and send to Profile Setup!
         final responseData = jsonDecode(response.body);
-        UserSession.currentUser = responseData['user'];
+        UserSession.setUser(responseData['user']);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

@@ -7,7 +7,7 @@ exports.getNearbyTutors = async (req, res) => {
 
         const distanceInMeters = (dist || 5) * 1000; // Default 5km
 
-        const tutors = await User.find({
+        const raw = await User.find({
             role: 'tutor',
             location: {
                 $near: {
@@ -19,6 +19,18 @@ exports.getNearbyTutors = async (req, res) => {
                 }
             }
         }).select('-password'); // Don't send passwords back
+
+        // normalize returned documents to resemble existing Tutor objects
+        const tutors = raw.map(u => ({
+            _id: u._id,
+            name: u.name,
+            subject: u.expertise || '',
+            expertise: u.expertise || '',
+            location: u.locationText || '',
+            rating: u.rating || '',
+            latitude: u.location?.coordinates?.[1] || null,
+            longitude: u.location?.coordinates?.[0] || null
+        }));
 
         res.json(tutors);
 

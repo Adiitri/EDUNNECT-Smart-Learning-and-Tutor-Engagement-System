@@ -1,6 +1,8 @@
 import 'tutor_details_screen.dart';
 import 'package:flutter/material.dart';
 import '../../../services/tutor_service.dart';
+import '../../../services/user_session.dart';
+import 'package:geolocator/geolocator.dart';
 
 class FindTutorScreen extends StatefulWidget {
   const FindTutorScreen({super.key});
@@ -20,12 +22,36 @@ class _FindTutorScreenState extends State<FindTutorScreen> {
   }
 
   void _loadTutors() async {
+    setState(() => _isLoading = true);
     try {
-      final tutors = await TutorService.getTutors();
-      setState(() {
-        _tutors = tutors;
-        _isLoading = false;
-      });
+      final user = UserSession.currentUser;
+      if (user != null && user['latitude'] != null && user['longitude'] != null) {
+        // use saved coordinates
+        final tutors = await TutorService.getNearbyTutors(
+            user['latitude'], user['longitude']);
+        setState(() {
+          _tutors = tutors;
+          _isLoading = false;
+        });
+      } else {
+        // try device location before falling back
+        try {
+          final pos = await Geolocator.getCurrentPosition(
+              desiredAccuracy: LocationAccuracy.high);
+          final tutors = await TutorService.getNearbyTutors(
+              pos.latitude, pos.longitude);
+          setState(() {
+            _tutors = tutors;
+            _isLoading = false;
+          });
+        } catch (_) {
+          final tutors = await TutorService.getTutors();
+          setState(() {
+            _tutors = tutors;
+            _isLoading = false;
+          });
+        }
+      }
     } catch (e) {
       setState(() => _isLoading = false);
       print("Error loading tutors: $e");
@@ -86,7 +112,8 @@ class _FindTutorScreenState extends State<FindTutorScreen> {
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           subtitle: Text(
-                            "${tutor['subject']} • ${tutor['location']}",
+                            // for users coming from geo-search the object may be a User
+                            "${tutor['subject'] ?? tutor['expertise'] ?? ''} • ${tutor['location'] ?? tutor['locationText'] ?? ''}",
                           ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -96,7 +123,7 @@ class _FindTutorScreenState extends State<FindTutorScreen> {
                                 color: Colors.amber,
                                 size: 16,
                               ),
-                              Text(tutor['rating']),
+                              Text(tutor['rating'] ?? ''),
                             ],
                           ),
                           onTap: () {

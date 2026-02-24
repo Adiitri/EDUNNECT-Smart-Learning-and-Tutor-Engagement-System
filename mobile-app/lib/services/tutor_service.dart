@@ -20,6 +20,26 @@ class TutorService {
     }
   }
 
+  /// Returns tutors within [km] kilometres of the provided coordinates.
+  /// Falls back to empty list if server fails.
+  static Future<List<dynamic>> getNearbyTutors(
+      double lat, double lng, {
+      int km = 5,
+    }) async {
+    try {
+      final uri = Uri.parse(
+          '$baseUrl/nearby?lat=$lat&lng=$lng&dist=$km');
+      final response = await http.get(uri);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception('Failed to load nearby tutors');
+      }
+    } catch (e) {
+      throw Exception("Error connecting to server: $e");
+    }
+  }
+
   // Add this inside the class, below getTutors()
   static Future<bool> bookTutor(String tutorId, String tutorName) async {
     try {
