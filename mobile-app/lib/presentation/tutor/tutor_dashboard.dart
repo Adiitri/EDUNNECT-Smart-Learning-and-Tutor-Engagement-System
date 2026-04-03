@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../services/user_session.dart';
 import '../common/login_screen.dart';
+import '../common/complete_profile_screen.dart';
 import '../student/real_time_chat.dart'; // Reuse the existing chat screen
+import 'booking_requests_screen.dart';
 import 'student_chat_list.dart';     // The new inbox screen we discussed
 
 class TutorDashboard extends StatefulWidget {
@@ -77,6 +79,18 @@ class _TutorDashboardState extends State<TutorDashboard> {
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            tooltip: 'Profile',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const CompleteProfileScreen(isNewUser: false),
+                ),
+              );
+            },
+          ),
           // 1. ADDED: Global Inbox Button
           IconButton(
             icon: const Icon(Icons.forum_rounded),
@@ -102,69 +116,82 @@ class _TutorDashboardState extends State<TutorDashboard> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _requests.isEmpty
-              ? const Center(child: Text("No booking requests yet."))
-              : RefreshIndicator(
-                  onRefresh: _fetchRequests,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _requests.length,
-                    itemBuilder: (context, index) {
-                      final req = _requests[index];
-                      final bool isConfirmed = req['status'] == 'Confirmed';
-
-                      return Card(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: Column(
-                          children: [
-                            ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: isConfirmed ? Colors.teal : Colors.orangeAccent,
-                                child: Text(req['studentName'][0], style: const TextStyle(color: Colors.white)),
-                              ),
-                              title: Text(req['studentName'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: Text("Status: ${req['status']}"),
-                              
-                              // 2. ADDED: Chat Button for individual confirmed bookings
-                              trailing: isConfirmed 
-                                ? IconButton(
-                                    icon: const Icon(Icons.chat_bubble_outline, color: Colors.teal),
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => RealTimeChatScreen(
-                                            tutor: {
-                                              'name': req['studentName'], 
-                                              'bookingId': req['_id'],   
-                                            }
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  )
-                                : null,
-                            ),
-                            
-                            // Accept/Decline buttons only for Pending
-                            if (req['status'] == 'Pending')
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 12.0),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    _buildStatusButton("Accept", Colors.green, () => _updateStatus(req['_id'], "Confirmed")),
-                                    _buildStatusButton("Decline", Colors.red, () => _updateStatus(req['_id'], "Rejected")),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        ),
+          : Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const BookingRequestsScreen()),
                       );
                     },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Booking Requests',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey[900],
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Tap to view all student requests',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.teal[50],
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  '${_requests.length}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.teal,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Icon(Icons.chevron_right, color: Colors.grey),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                ],
+              ),
+            ),
     );
   }
 

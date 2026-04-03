@@ -205,7 +205,24 @@ exports.updateProfile = async (req, res) => {
             }
         }
 
-        res.json({ msg: "Profile updated successfully", user: updatedUser });
+        // Return user data in the same format as login endpoint for consistency
+        res.json({ 
+            msg: "Profile updated successfully", 
+            user: { 
+                _id: updatedUser._id, 
+                name: updatedUser.name, 
+                email: updatedUser.email, 
+                role: updatedUser.role,
+                location: updatedUser.locationText || '',
+                expertise: updatedUser.expertise,
+                phone: updatedUser.phone,
+                about: updatedUser.about,
+                profileImage: updatedUser.profileImage,
+                classGrade: updatedUser.classGrade,
+                latitude: updatedUser.location?.coordinates?.[1] || null,
+                longitude: updatedUser.location?.coordinates?.[0] || null
+            } 
+        });
     } catch (err) {
         console.error("Update Profile Error:", err.message);
         res.status(500).json({ error: err.message });

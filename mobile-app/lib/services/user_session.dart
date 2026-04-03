@@ -4,13 +4,19 @@ class UserSession {
 
   // 1. SET SESSION (This fixes your Null Error!) 🛡️
   static void setUser(Map<String, dynamic> userData) {
-    // parse coordinates from a geo field if present
+    // FIRST: Use explicit latitude/longitude from API response if available
     double lat = 0, lng = 0;
-    if (userData['location'] is Map) {
-      final coords = userData['location']['coordinates'];
-      if (coords is List && coords.length >= 2) {
-        lng = (coords[0] as num).toDouble();
-        lat = (coords[1] as num).toDouble();
+    if (userData['latitude'] != null && userData['longitude'] != null) {
+      lat = (userData['latitude'] as num).toDouble();
+      lng = (userData['longitude'] as num).toDouble();
+    } else {
+      // FALLBACK: parse coordinates from a geo field if present
+      if (userData['location'] is Map) {
+        final coords = userData['location']['coordinates'];
+        if (coords is List && coords.length >= 2) {
+          lng = (coords[0] as num).toDouble();
+          lat = (coords[1] as num).toDouble();
+        }
       }
     }
 
@@ -28,6 +34,8 @@ class UserSession {
       'latitude': lat,
       'longitude': lng,
       'about': userData['about'] ?? 'Hey there! I am using Edunnect.',
+      'expertise': userData['expertise'] ?? '',
+      'classGrade': userData['classGrade'] ?? '',
       'profileImage': userData['profileImage'] ?? '',
     };
   }

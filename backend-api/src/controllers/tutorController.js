@@ -28,6 +28,7 @@ exports.getNearbyTutors = async (req, res) => {
             expertise: u.expertise || '',
             location: u.locationText || '',
             rating: u.rating || '',
+            about: u.about || '', // Include tutor's bio/about section
             latitude: u.location?.coordinates?.[1] || null,
             longitude: u.location?.coordinates?.[0] || null
         }));

@@ -156,9 +156,9 @@ class _TutorDetailsScreenState extends State<TutorDetailsScreen> {
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
-                    "This tutor is highly experienced and has helped many students achieve excellent results in their exams. Verified by Edunnect.",
-                    style: TextStyle(fontSize: 16, height: 1.5),
+                  Text(
+                    widget.tutor['about'] ?? "This tutor is highly experienced and has helped many students achieve excellent results in their exams. Verified by Edunnect.",
+                    style: const TextStyle(fontSize: 16, height: 1.5),
                   ),
 
                   const SizedBox(height: 20),

@@ -61,32 +61,115 @@ class _RealTimeChatScreenState extends State<RealTimeChatScreen> {
       socket.emit('join_chat', widget.tutor?['bookingId']);
     });
 
+    socket.onDisconnect((_) {
+      if (mounted) setState(() => _isConnected = false);
+    });
+
     socket.on('receive_message', (data) {
-      if (mounted) {
-        setState(() {
-          _messages.insert(0, {
-            'text': data['text'],
-            'senderId': data['senderId'],
-            'isMe': data['senderId'] == UserSession.currentUser?['_id'],
-            'time': DateTime.now(),
+      if (mounted && data != null) {
+        final senderId = data['senderId']?.toString() ?? '';
+        final text = data['text']?.toString() ?? '';
+
+        if (!_isDuplicateMessage(senderId, text)) {
+          setState(() {
+            _messages.insert(0, {
+              'text': text,
+              'senderId': senderId,
+              'isMe': senderId == UserSession.currentUser?['_id'],
+              'time': DateTime.tryParse(data['timestamp']?.toString() ?? '') ?? DateTime.now(),
+            });
           });
-        });
+        }
       }
     });
   }
 
+  bool _isDuplicateMessage(String senderId, String text) {
+    return _messages.any((msg) {
+      final msgSender = msg['senderId']?.toString() ?? '';
+      final msgText = msg['text']?.toString() ?? '';
+      final msgTime = msg['time'] is DateTime ? msg['time'] as DateTime : DateTime.now();
+      return msgSender == senderId && msgText == text && DateTime.now().difference(msgTime).inSeconds < 5;
+    });
+  }
+
+  Future<void> _fallbackSend(Map<String, dynamic> messageData) async {
+    try {
+      final response = await http.post(
+        Uri.parse('http://localhost:5000/api/chat/send'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(messageData),
+      );
+
+      if (response.statusCode != 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Unable to send through socket, fallback failed.'),
+            backgroundColor: Colors.red,
+          ));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Failed to send chat message.'),
+          backgroundColor: Colors.red,
+        ));
+      }
+    }
+  }
+
   void _sendMessage() {
+    final bookingId = widget.tutor?['bookingId'];
+    final senderId = UserSession.currentUser?['_id'];
     final text = _messageController.text.trim();
-    if (text.isEmpty || !_isConnected) return;
+
+    if (bookingId == null || senderId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Chat ID or user not found. Please try again.'),
+          backgroundColor: Colors.red,
+        ));
+      }
+      return;
+    }
+
+    if (text.isEmpty) return;
 
     final messageData = {
-      'bookingId': widget.tutor?['bookingId'],
-      'senderId': UserSession.currentUser?['_id'],
+      'bookingId': bookingId,
+      'senderId': senderId,
       'text': text,
     };
 
-    socket.emit('send_message', messageData);
     _messageController.clear();
+
+    if (!_isDuplicateMessage(senderId, text)) {
+      setState(() {
+        _messages.insert(0, {
+          'text': text,
+          'senderId': senderId,
+          'isMe': true,
+          'time': DateTime.now(),
+        });
+      });
+    }
+
+    if (_isConnected) {
+      socket.emit('send_message', messageData);
+    } else {
+      _fallbackSend(messageData);
+    }
+  }
+
+  @override
+  void dispose() {
+    socket.off('receive_message');
+    socket.off('connect');
+    socket.off('disconnect');
+    socket.disconnect();
+    _messageController.dispose();
+    super.dispose();
   }
 
   @override

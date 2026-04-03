@@ -13,49 +13,73 @@ class FindTutorScreen extends StatefulWidget {
 
 class _FindTutorScreenState extends State<FindTutorScreen> {
   List<dynamic> _tutors = [];
+  List<dynamic> _filteredTutors = [];
   bool _isLoading = true;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadTutors();
+    _searchController.addListener(_applySearchFilter);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_applySearchFilter);
+    _searchController.dispose();
+    super.dispose();
   }
 
   void _loadTutors() async {
     setState(() => _isLoading = true);
     try {
       final user = UserSession.currentUser;
+      List<dynamic> tutors = [];
+
       if (user != null && user['latitude'] != null && user['longitude'] != null) {
         // use saved coordinates
-        final tutors = await TutorService.getNearbyTutors(
-            user['latitude'], user['longitude']);
-        setState(() {
-          _tutors = tutors;
-          _isLoading = false;
-        });
+        tutors = await TutorService.getNearbyTutors(user['latitude'], user['longitude']);
       } else {
         // try device location before falling back
         try {
-          final pos = await Geolocator.getCurrentPosition(
-              desiredAccuracy: LocationAccuracy.high);
-          final tutors = await TutorService.getNearbyTutors(
-              pos.latitude, pos.longitude);
-          setState(() {
-            _tutors = tutors;
-            _isLoading = false;
-          });
+          final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+          tutors = await TutorService.getNearbyTutors(pos.latitude, pos.longitude);
         } catch (_) {
-          final tutors = await TutorService.getTutors();
-          setState(() {
-            _tutors = tutors;
-            _isLoading = false;
-          });
+          tutors = await TutorService.getTutors();
         }
       }
+
+      setState(() {
+        _tutors = tutors;
+        _filteredTutors = tutors;
+        _isLoading = false;
+      });
     } catch (e) {
       setState(() => _isLoading = false);
       print("Error loading tutors: $e");
     }
+  }
+
+  void _applySearchFilter() {
+    final query = _searchController.text.trim().toLowerCase();
+    if (query.isEmpty) {
+      setState(() {
+        _filteredTutors = List<dynamic>.from(_tutors);
+      });
+      return;
+    }
+
+    final filtered = _tutors.where((tutor) {
+      final expertise = (tutor['expertise'] ?? tutor['subject'] ?? tutor['about'] ?? '').toString().toLowerCase();
+      final location = (tutor['location'] ?? tutor['locationText'] ?? '').toString().toLowerCase();
+      final name = (tutor['name'] ?? '').toString().toLowerCase();
+      return expertise.contains(query) || location.contains(query) || name.contains(query);
+    }).toList();
+
+    setState(() {
+      _filteredTutors = filtered;
+    });
   }
 
   @override
@@ -72,9 +96,18 @@ class _FindTutorScreenState extends State<FindTutorScreen> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: TextField(
+              controller: _searchController,
               decoration: InputDecoration(
                 hintText: "Search Physics, Math...",
                 prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                        },
+                      )
+                    : null,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -88,13 +121,13 @@ class _FindTutorScreenState extends State<FindTutorScreen> {
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : _tutors.isEmpty
-                ? const Center(child: Text("No tutors found."))
-                : ListView.builder(
-                    itemCount: _tutors.length,
-                    itemBuilder: (context, index) {
-                      final tutor = _tutors[index];
-                      return Card(
+                : _filteredTutors.isEmpty
+                    ? const Center(child: Text("No tutors found."))
+                    : ListView.builder(
+                        itemCount: _filteredTutors.length,
+                        itemBuilder: (context, index) {
+                          final tutor = _filteredTutors[index];
+                          return Card(
                         margin: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 8,
