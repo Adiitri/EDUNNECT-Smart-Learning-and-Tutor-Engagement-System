@@ -167,21 +167,23 @@ class _TutorDashboardState extends State<TutorDashboard> {
                           ),
                           Row(
                             children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.teal[50],
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  '${_requests.length}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.teal,
+                              if (_requests.where((req) => req['status'] == 'Pending').length > 0)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.teal[50],
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    '${_requests.where((req) => req['status'] == 'Pending').length}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.teal,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 12),
+                              if (_requests.where((req) => req['status'] == 'Pending').length > 0)
+                                const SizedBox(width: 12),
                               const Icon(Icons.chevron_right, color: Colors.grey),
                             ],
                           ),

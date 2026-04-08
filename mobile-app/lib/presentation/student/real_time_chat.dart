@@ -2,8 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:http/http.dart' as http;
+import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import '../../services/user_session.dart';
+
+// Web-only imports
+import 'dart:html' as html show window;
 
 class RealTimeChatScreen extends StatefulWidget {
   final Map<String, dynamic>? tutor;
@@ -18,6 +26,7 @@ class _RealTimeChatScreenState extends State<RealTimeChatScreen> {
   late IO.Socket socket;
   List<Map<String, dynamic>> _messages = [];
   bool _isConnected = false;
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
@@ -40,6 +49,8 @@ class _RealTimeChatScreenState extends State<RealTimeChatScreen> {
             'senderId': m['sender'],
             'isMe': m['sender'] == UserSession.currentUser?['_id'],
             'time': DateTime.parse(m['timestamp']),
+            'type': m['fileType'] ?? 'text',
+            'fileUrl': m['fileUrl'],
           }).toList().reversed.toList();
         });
       }
@@ -77,6 +88,8 @@ class _RealTimeChatScreenState extends State<RealTimeChatScreen> {
               'senderId': senderId,
               'isMe': senderId == UserSession.currentUser?['_id'],
               'time': DateTime.tryParse(data['timestamp']?.toString() ?? '') ?? DateTime.now(),
+              'type': data['fileType'] ?? 'text',
+              'fileUrl': data['fileUrl'],
             });
           });
         }
@@ -151,6 +164,7 @@ class _RealTimeChatScreenState extends State<RealTimeChatScreen> {
           'senderId': senderId,
           'isMe': true,
           'time': DateTime.now(),
+          'type': 'text',
         });
       });
     }
@@ -159,6 +173,279 @@ class _RealTimeChatScreenState extends State<RealTimeChatScreen> {
       socket.emit('send_message', messageData);
     } else {
       _fallbackSend(messageData);
+    }
+  }
+
+  // File Upload Methods
+  Future<void> _showUploadOptions() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.image),
+                title: const Text('Pick Image'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Take Photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _captureImage();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.description),
+                title: const Text('Pick Document/File'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickFile();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final pickedFile = await _imagePicker.pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        if (kIsWeb) {
+          final bytes = await pickedFile.readAsBytes();
+          await _uploadAndSendFileWeb(bytes, pickedFile.name, 'image');
+        } else {
+          await _uploadAndSendFile(File(pickedFile.path), 'image');
+        }
+      }
+    } catch (e) {
+      debugPrint("Image picker error: $e");
+    }
+  }
+
+  Future<void> _captureImage() async {
+    try {
+      final pickedFile = await _imagePicker.pickImage(source: ImageSource.camera);
+      if (pickedFile != null) {
+        if (kIsWeb) {
+          final bytes = await pickedFile.readAsBytes();
+          await _uploadAndSendFileWeb(bytes, pickedFile.name, 'image');
+        } else {
+          await _uploadAndSendFile(File(pickedFile.path), 'image');
+        }
+      }
+    } catch (e) {
+      debugPrint("Camera capture error: $e");
+    }
+  }
+
+  Future<void> _pickFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles();
+      if (result != null && result.files.single.bytes != null) {
+        final bytes = result.files.single.bytes!;
+        final fileName = result.files.single.name;
+        await _uploadAndSendFileWeb(bytes, fileName, 'file');
+      }
+    } catch (e) {
+      debugPrint("File picker error: $e");
+    }
+  }
+
+  Future<void> _uploadAndSendFileWeb(Uint8List bytes, String fileName, String fileType) async {
+    try {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Uploading file...'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      }
+
+      final bookingId = widget.tutor?['bookingId'];
+      final senderId = UserSession.currentUser?['_id'];
+
+      if (bookingId == null || senderId == null) return;
+
+      // Create multipart request for web
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('http://localhost:5000/api/chat/upload'),
+      );
+
+      request.fields['bookingId'] = bookingId;
+      request.fields['senderId'] = senderId;
+      request.fields['fileType'] = fileType;
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          bytes,
+          filename: fileName,
+        ),
+      );
+
+      final response = await request.send();
+      final responseData = await response.stream.bytesToString();
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(responseData);
+        final fileUrl = data['fileUrl'];
+
+        final messageData = {
+          'bookingId': bookingId,
+          'senderId': senderId,
+          'text': fileName,
+          'fileUrl': fileUrl,
+          'fileType': fileType,
+        };
+
+        if (mounted) {
+          setState(() {
+            _messages.insert(0, {
+              'text': fileName,
+              'senderId': senderId,
+              'isMe': true,
+              'time': DateTime.now(),
+              'type': fileType,
+              'fileUrl': fileUrl,
+            });
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('File sent successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+
+        if (_isConnected) {
+          socket.emit('send_message', messageData);
+        } else {
+          _fallbackSend(messageData);
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to upload file'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("File upload error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error uploading file: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _uploadAndSendFile(File file, String fileType) async {
+    try {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Uploading file...'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      }
+
+      final bookingId = widget.tutor?['bookingId'];
+      final senderId = UserSession.currentUser?['_id'];
+
+      if (bookingId == null || senderId == null) return;
+
+      // Create multipart request
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('http://localhost:5000/api/chat/upload'),
+      );
+
+      request.fields['bookingId'] = bookingId;
+      request.fields['senderId'] = senderId;
+      request.fields['fileType'] = fileType;
+      request.files.add(await http.MultipartFile.fromPath('file', file.path));
+
+      final response = await request.send();
+      final responseData = await response.stream.bytesToString();
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(responseData);
+        final fileUrl = data['fileUrl'];
+        final fileName = data['fileName'];
+
+        final messageData = {
+          'bookingId': bookingId,
+          'senderId': senderId,
+          'text': fileName,
+          'fileUrl': fileUrl,
+          'fileType': fileType,
+        };
+
+        if (mounted) {
+          setState(() {
+            _messages.insert(0, {
+              'text': fileName,
+              'senderId': senderId,
+              'isMe': true,
+              'time': DateTime.now(),
+              'type': fileType,
+              'fileUrl': fileUrl,
+            });
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('File sent successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+
+        if (_isConnected) {
+          socket.emit('send_message', messageData);
+        } else {
+          _fallbackSend(messageData);
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to upload file'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("File upload error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error uploading file: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -197,6 +484,8 @@ class _RealTimeChatScreenState extends State<RealTimeChatScreen> {
                 message: _messages[index]['text'],
                 isMe: _messages[index]['isMe'],
                 time: _messages[index]['time'],
+                messageType: _messages[index]['type'] ?? 'text',
+                fileUrl: _messages[index]['fileUrl'],
               ),
             ),
           ),
@@ -212,6 +501,15 @@ class _RealTimeChatScreenState extends State<RealTimeChatScreen> {
       color: Colors.white,
       child: Row(
         children: [
+          // Add '+' button on the left
+          CircleAvatar(
+            backgroundColor: const Color(0xFF075E54),
+            child: IconButton(
+              icon: const Icon(Icons.add, color: Colors.white),
+              onPressed: _showUploadOptions,
+            ),
+          ),
+          const SizedBox(width: 8),
           Expanded(
             child: TextField(
               controller: _messageController,
@@ -239,8 +537,45 @@ class _ChatBubble extends StatelessWidget {
   final String message;
   final bool isMe;
   final DateTime time;
+  final String? messageType;
+  final String? fileUrl;
+  final BuildContext? chatContext;
 
-  const _ChatBubble({required this.message, required this.isMe, required this.time});
+  const _ChatBubble({
+    required this.message,
+    required this.isMe,
+    required this.time,
+    this.messageType = 'text',
+    this.fileUrl,
+    this.chatContext,
+  });
+
+  void _openFile(BuildContext context) {
+    if (fileUrl == null || fileUrl!.isEmpty) return;
+
+    if (messageType == 'image') {
+      showDialog(
+        context: context,
+        builder: (context) => Dialog(
+          child: InteractiveViewer(
+            child: Image.network(fileUrl!, fit: BoxFit.contain),
+          ),
+        ),
+      );
+    } else {
+      // For files, launch URL to download/open
+      if (kIsWeb) {
+        // On web, open in new tab
+        html.window.open(fileUrl!, '_blank');
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Opening: $message'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -257,9 +592,47 @@ class _ChatBubble extends StatelessWidget {
         child: Column(
           crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
-            Text(message, style: const TextStyle(fontSize: 16)),
+            // Display different content based on message type
+            if (messageType == 'image' && fileUrl != null)
+              GestureDetector(
+                onTap: () => _openFile(context),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    fileUrl!,
+                    width: 200,
+                    height: 200,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Text('Image not found'),
+                  ),
+                ),
+              )
+            else if (messageType == 'file' && fileUrl != null)
+              GestureDetector(
+                onTap: () => _openFile(context),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.attach_file, size: 20),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        message,
+                        style: const TextStyle(fontSize: 14, decoration: TextDecoration.underline, color: Colors.blue),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Text(message, style: const TextStyle(fontSize: 16)),
             const SizedBox(height: 4),
-            Text("${time.hour}:${time.minute.toString().padLeft(2, '0')}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
+            Text(
+              "${time.hour}:${time.minute.toString().padLeft(2, '0')}",
+              style: const TextStyle(fontSize: 10, color: Colors.grey),
+            ),
           ],
         ),
       ),

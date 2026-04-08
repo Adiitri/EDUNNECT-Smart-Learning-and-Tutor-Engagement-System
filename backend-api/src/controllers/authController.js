@@ -101,7 +101,7 @@ exports.login = async (req, res) => {
 
         // Check User
         const user = await User.findOne({ email });
-        if (!user) return res.status(400).json({ msg: 'User not found' });
+        if (!user) return res.status(400).json({ msg: 'Wrong UserID or Password' });
 
         // The Security Bouncer
         if (role && user.role !== role) {
@@ -112,7 +112,7 @@ exports.login = async (req, res) => {
 
         // Check Password
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(400).json({ msg: 'Invalid credentials' });
+        if (!isMatch) return res.status(400).json({ msg: 'Wrong UserID or Password' });
 
         // Create Token
         const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });

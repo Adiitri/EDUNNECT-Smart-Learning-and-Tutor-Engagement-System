@@ -73,9 +73,12 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } else {
         if (mounted) {
+          final errorData = jsonDecode(response.body);
+          final errorMessage = errorData['msg'] ?? errorData['error'] ?? 'Wrong UserID or Password';
+          
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text("Error: ${jsonDecode(response.body)['message']}"),
+              content: Text("Error: $errorMessage"),
               backgroundColor: Colors.red,
             ),
           );

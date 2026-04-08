@@ -22,6 +22,10 @@ const io = socketIo(server, {
 app.use(cors());
 app.use(express.json());
 
+// Serve static files for uploads
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Connect to Database
 connectDB();
 
@@ -46,13 +50,13 @@ app.use('/api/chat', chatRoutes); // ADDED THIS
 
 // Optional fallback endpoint for non-socket send trigger (helps unreliable socket conditions)
 app.post('/api/chat/send', async (req, res) => {
-    const { bookingId, senderId, text } = req.body;
+    const { bookingId, senderId, text, fileUrl, fileType } = req.body;
     if (!bookingId || !senderId || !text) {
         return res.status(400).json({ status: 'error', message: 'bookingId, senderId, and text are required' });
     }
 
     try {
-        const saved = await chatController.saveSocketMessage({ bookingId, senderId, text });
+        const saved = await chatController.saveSocketMessage({ bookingId, senderId, text, fileUrl, fileType });
         if (!saved) {
             return res.status(500).json({ status: 'error', message: 'Failed to save message' });
         }
@@ -60,6 +64,8 @@ app.post('/api/chat/send', async (req, res) => {
         io.to(bookingId.toString()).emit('receive_message', {
             text,
             senderId,
+            fileUrl: fileUrl || null,
+            fileType: fileType || 'text',
             timestamp: new Date(),
         });
 
@@ -105,6 +111,8 @@ io.on('connection', (socket) => {
             io.to(data.bookingId.toString()).emit('receive_message', {
                 text: data.text,
                 senderId: data.senderId,
+                fileUrl: data.fileUrl || null,
+                fileType: data.fileType || 'text',
                 timestamp: new Date()
             });
 
