@@ -2,13 +2,13 @@
 node_modules/
 npm-debug.log
 
-# Ignore Environment Secrets (VERY IMPORTANT)
+# Ignore Environment Secrets 
 .env
 
 # Ignore Mac System files
 .DS_Store
 
-# Ignore Flutter build files (Heavy junk)
+# Ignore Flutter build files
 mobile-app/build/
 mobile-app/.dart_tool/
 mobile-app/.flutter-plugins
